@@ -53,7 +53,13 @@
       </section>
 
       <section class="card">
-        <h2 class="h2">ポイント（players）</h2>
+        <div class="row row--between row--wrap">
+          <h2 class="h2" style="margin: 0">ポイント（players）</h2>
+          <label class="radio" title="ホスト本人のポイントだけ表示/非表示を切り替えます（他参加者はそのまま）">
+            <input id="hostPointVisibleToggle" type="checkbox" />
+            ホストのポイント表示
+          </label>
+        </div>
         <div id="playersEmpty" class="muted">参加者が overlay を開くとここに表示されます。</div>
         <div id="playersList" class="players"></div>
       </section>

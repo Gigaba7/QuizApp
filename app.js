@@ -517,6 +517,7 @@
       // eslint-disable-next-line no-await-in-loop
       await roomRef.set({
         hostId,
+        flags: { hostPointVisible: true },
         timer: { duration: 300, startedAt: 0, running: false },
         players: {},
       });
@@ -526,6 +527,7 @@
     const roomId = String(Math.floor(100000 + Math.random() * 900000));
     await roomsRef.child(roomId).set({
       hostId,
+      flags: { hostPointVisible: true },
       timer: { duration: 300, startedAt: 0, running: false },
       players: {},
     });
@@ -584,6 +586,23 @@
     let timerState = { duration: 0, startedAt: 0, running: false };
     roomRef.child("timer").on("value", (snap) => {
       timerState = snap.val() || { duration: 0, startedAt: 0, running: false };
+    });
+
+    // Host-controlled overlay flags (host's own point only)
+    const hostPointVisibleToggle = qs("#hostPointVisibleToggle");
+    if (hostPointVisibleToggle) hostPointVisibleToggle.disabled = !isHost;
+    const hostPointRef = roomRef.child("flags/hostPointVisible");
+    // Backward compat: if old flags/pointsVisible exists, treat it as initial value
+    roomRef.child("flags").on("value", (snap) => {
+      const flags = snap.val() || {};
+      const v = flags.hostPointVisible;
+      const legacy = flags.pointsVisible;
+      const visible = v == null ? (legacy == null ? true : !!legacy) : !!v;
+      if (hostPointVisibleToggle) hostPointVisibleToggle.checked = visible;
+    });
+    hostPointVisibleToggle?.addEventListener("change", () => {
+      if (!isHost) return;
+      hostPointRef.set(!!hostPointVisibleToggle.checked);
     });
 
     const playersListEl = qs("#playersList");
@@ -747,6 +766,9 @@
 
     let timerState = { duration: 300, startedAt: 0, running: false };
     let playersState = {};
+    let hostAuthUid = "";
+    let hostPointVisible = true;
+    let hostPointsVisible = true;
 
     const isTest = !roomId || roomId === "test";
 
@@ -760,6 +782,9 @@
       playersEl.innerHTML = "";
 
       for (const [uid, p] of entries) {
+        // hide only host player's card when hostPointVisible=false
+        if (!hostPointVisible && hostAuthUid && String(p?.authUid || "") === hostAuthUid) continue;
+
         const card = document.createElement("div");
         card.className = "pointCard";
         const color = String(p?.color || DEFAULT_PROFILE.color);
@@ -793,7 +818,7 @@
 
     function applyAll() {
       applyOverlayLayout(timerEl, layout.timer);
-      applyOverlayLayout(pointEl, layout.point);
+      applyOverlayLayout(pointEl, { ...layout.point, visible: !!layout.point.visible && !!hostPointsVisible });
       setOverlayAccent(timerEl, profile.color);
 
       if (isTest) {
@@ -1080,12 +1105,27 @@
         ensureAuthed().then((authed) => {
           if (!authed) return;
           const roomRef = fb.db.ref(`rooms/${roomId}`);
+          const hostIdRef = roomRef.child("hostId");
           const timerRef = roomRef.child("timer");
           const playerRef = roomRef.child(`players/${userId}`);
           const playersRef = roomRef.child("players");
+          const flagsRef = roomRef.child("flags");
 
           timerRef.on("value", (snap) => {
             timerState = snap.val() || timerState;
+          });
+
+          hostIdRef.on("value", (snap) => {
+            hostAuthUid = String(snap.val() || "");
+            applyAll();
+          });
+
+          flagsRef.on("value", (snap) => {
+            const flags = snap.val() || {};
+            const v = flags.hostPointVisible;
+            const legacy = flags.pointsVisible;
+            hostPointVisible = v == null ? (legacy == null ? true : !!legacy) : !!v;
+            applyAll();
           });
 
           playersRef.on("value", (snap) => {
