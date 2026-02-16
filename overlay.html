@@ -29,6 +29,95 @@
       <button id="ovLeaveBtn" class="btn btn--small btn--danger hidden" type="button">ルームから退出</button>
     </div>
 
+    <!-- 表示調整モーダル（accessがあるときのみ開ける想定） -->
+    <section id="ovAdjustModal" class="modal hidden" aria-hidden="true">
+      <div class="modal__backdrop" data-close="1"></div>
+      <div class="modal__panel" role="dialog" aria-modal="true" aria-labelledby="ovAdjustTitle">
+        <div class="row row--between row--wrap">
+          <h2 id="ovAdjustTitle" class="h2" style="margin: 0">表示調整</h2>
+          <button id="ovAdjustCloseBtn" class="btn btn--small" type="button">閉じる</button>
+        </div>
+
+        <div class="grid grid--3" style="margin-top: 10px">
+          <div class="field">
+            <label class="label" for="ovDsDisplayName">表示名</label>
+            <div class="inputRow">
+              <input id="ovDsDisplayName" class="input" type="text" maxlength="24" placeholder="例: Player 1" />
+              <button id="ovDsPasteNameBtn" class="btn btn--small" type="button">ペースト</button>
+            </div>
+          </div>
+          <div class="field">
+            <label class="label">カラー</label>
+            <div id="ovDsColorPalette" class="colorPalette" role="group" aria-label="カラー選択">
+              <button class="colorSwatch" type="button" data-color="#7c5cff" aria-label="紫"></button>
+              <button class="colorSwatch" type="button" data-color="#2fe1a0" aria-label="緑"></button>
+              <button class="colorSwatch" type="button" data-color="#00c2ff" aria-label="水色"></button>
+              <button class="colorSwatch" type="button" data-color="#ffb020" aria-label="オレンジ"></button>
+              <button class="colorSwatch" type="button" data-color="#ff3b66" aria-label="ピンク"></button>
+              <button class="colorSwatch" type="button" data-color="#ffffff" aria-label="白"></button>
+              <button class="colorSwatch" type="button" data-color="#9aa4b2" aria-label="グレー"></button>
+              <button class="colorSwatch" type="button" data-color="#111827" aria-label="黒"></button>
+              <button class="colorSwatch" type="button" data-color="#f97316" aria-label="濃いオレンジ"></button>
+              <button class="colorSwatch" type="button" data-color="#22c55e" aria-label="明るい緑"></button>
+              <button class="colorSwatch" type="button" data-color="#3b82f6" aria-label="青"></button>
+            </div>
+          </div>
+          <div class="field">
+            <label class="label" for="ovDsImage">背景画像（ポイント枠）</label>
+            <input id="ovDsImage" class="input" type="file" accept="image/*" />
+            <div class="row row--wrap">
+              <button id="ovDsClearImageBtn" class="btn btn--small" type="button">画像を削除</button>
+            </div>
+          </div>
+        </div>
+
+        <hr class="hr" />
+
+        <p id="ovDsSideError" class="notice notice--error hidden">タイマーとポイントは同じ位置を選べません。</p>
+        <div class="grid grid--2">
+          <div class="field">
+            <div class="label">タイマー</div>
+            <div class="row row--wrap">
+              <label class="radio"><input type="radio" name="ovDsTimerVisible" value="on" /> 表示</label>
+              <label class="radio"><input type="radio" name="ovDsTimerVisible" value="off" /> 非表示</label>
+            </div>
+            <div class="row row--wrap" style="margin-top: 6px">
+              <label class="radio"><input type="radio" name="ovDsTimerSide" value="top" /> 上</label>
+              <label class="radio"><input type="radio" name="ovDsTimerSide" value="bottom" /> 下</label>
+              <label class="radio"><input type="radio" name="ovDsTimerSide" value="left" /> 左</label>
+              <label class="radio"><input type="radio" name="ovDsTimerSide" value="right" /> 右</label>
+            </div>
+            <div class="field" style="margin-top: 6px">
+              <label class="label" for="ovDsTimerScale">scale</label>
+              <input id="ovDsTimerScale" class="input" type="range" min="0.5" max="2" step="0.1" />
+            </div>
+          </div>
+          <div class="field">
+            <div class="label">ポイント</div>
+            <div class="row row--wrap">
+              <label class="radio"><input type="radio" name="ovDsPointVisible" value="on" /> 表示</label>
+              <label class="radio"><input type="radio" name="ovDsPointVisible" value="off" /> 非表示</label>
+            </div>
+            <div class="row row--wrap" style="margin-top: 6px">
+              <label class="radio"><input type="radio" name="ovDsPointSide" value="top" /> 上</label>
+              <label class="radio"><input type="radio" name="ovDsPointSide" value="bottom" /> 下</label>
+              <label class="radio"><input type="radio" name="ovDsPointSide" value="left" /> 左</label>
+              <label class="radio"><input type="radio" name="ovDsPointSide" value="right" /> 右</label>
+            </div>
+            <div class="field" style="margin-top: 6px">
+              <label class="label" for="ovDsPointScale">scale</label>
+              <input id="ovDsPointScale" class="input" type="range" min="0.5" max="2" step="0.1" />
+            </div>
+          </div>
+        </div>
+
+        <div class="row row--wrap" style="margin-top: 12px">
+          <span class="muted">※操作は自動保存されます</span>
+          <button id="ovDsResetBtn" class="btn btn--danger" type="button">初期化</button>
+        </div>
+      </div>
+    </section>
+
     <!-- Firebase (compat) -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>

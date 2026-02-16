@@ -324,19 +324,11 @@
     const timerScaleEl = qs("#dsTimerScale");
     const pointScaleEl = qs("#dsPointScale");
 
-    const saveBtn = qs("#dsSaveBtn");
     const resetBtn = qs("#dsResetBtn");
-    const saveStatus = qs("#dsSaveStatus");
     const sideError = qs("#dsSideError");
 
     const testCountEl = qs("#dsTestUserCount");
     const openTestBtn = qs("#dsOpenTestBtn");
-
-    const roomIdEl = qs("#dsRoomId");
-    const pasteRoomBtn = qs("#dsPasteRoomBtn");
-    const overlayUrlEl = qs("#dsOverlayUrl");
-    const copyOverlayBtn = qs("#dsCopyOverlayBtn");
-    const openOverlayBtn = qs("#dsOpenOverlayBtn");
 
     const setRadio = (name, value) => {
       const el = qs(`input[name="${name}"][value="${value}"]`);
@@ -352,10 +344,6 @@
     setRadio("dsPointVisible", layout.point.visible ? "on" : "off");
     setRadio("dsTimerSide", layout.timer.side);
     setRadio("dsPointSide", layout.point.side);
-
-    // preload last room
-    const lastRoom = sessionStorage.getItem("last_room") || "";
-    if (roomIdEl && lastRoom && /^\d{6}$/.test(lastRoom)) roomIdEl.value = lastRoom;
 
     // test user count
     let testUserCount = Number(localStorage.getItem("test_user_count") || "3") || 3;
@@ -391,29 +379,15 @@
       });
     }
 
-    function updateOverlayUrl() {
-      const raw = (roomIdEl?.value || "").trim();
-      const room = raw || "test";
-      if (overlayUrlEl) overlayUrlEl.value = buildOverlayUrl(room);
-    }
-
-    function setSaved(msg) {
-      if (!saveStatus) return;
-      saveStatus.textContent = msg;
-      setTimeout(() => {
-        if (saveStatus.textContent === msg) saveStatus.textContent = "";
-      }, 900);
-    }
-
     function saveAll() {
       saveLayout(userId, layout);
       saveProfile(userId, profile);
       disableConflictingSideOptions();
-      setSaved("保存しました");
     }
 
     nameEl?.addEventListener("input", () => {
       profile.name = (nameEl.value || "").toString().slice(0, 24) || DEFAULT_PROFILE.name;
+      saveProfile(userId, profile);
     });
 
     function renderPaletteSelected() {
@@ -433,6 +407,7 @@
       if (!c) return;
       profile.color = c;
       renderPaletteSelected();
+      saveProfile(userId, profile);
     });
 
     pasteNameBtn?.addEventListener("click", async () => {
@@ -457,22 +432,26 @@
       const reader = new FileReader();
       reader.onload = () => {
         profile.iconImage = String(reader.result || "");
+        saveProfile(userId, profile);
       };
       reader.readAsDataURL(f);
     });
     clearImgBtn?.addEventListener("click", () => {
       profile.iconImage = "";
       if (imgEl) imgEl.value = "";
+      saveProfile(userId, profile);
     });
 
     qsa('input[name="dsTimerVisible"]').forEach((el) =>
       el.addEventListener("change", () => {
         layout.timer.visible = el.value === "on";
+        saveLayout(userId, layout);
       }),
     );
     qsa('input[name="dsPointVisible"]').forEach((el) =>
       el.addEventListener("change", () => {
         layout.point.visible = el.value === "on";
+        saveLayout(userId, layout);
       }),
     );
     qsa('input[name="dsTimerSide"]').forEach((el) =>
@@ -481,6 +460,7 @@
         layout.timer.side = el.value;
         enforceSideConstraint("timer");
         disableConflictingSideOptions();
+        saveLayout(userId, layout);
       }),
     );
     qsa('input[name="dsPointSide"]').forEach((el) =>
@@ -489,14 +469,17 @@
         layout.point.side = el.value;
         enforceSideConstraint("point");
         disableConflictingSideOptions();
+        saveLayout(userId, layout);
       }),
     );
 
     timerScaleEl?.addEventListener("input", () => {
       layout.timer.scale = clamp(Number(timerScaleEl.value), 0.5, 2.0);
+      saveLayout(userId, layout);
     });
     pointScaleEl?.addEventListener("input", () => {
       layout.point.scale = clamp(Number(pointScaleEl.value), 0.5, 2.0);
+      saveLayout(userId, layout);
     });
 
     testCountEl?.addEventListener("input", () => {
@@ -510,55 +493,17 @@
       window.open(`./overlay.html?room=test&access=${encodeURIComponent(t)}`, "_blank", "noreferrer");
     });
 
-    saveBtn?.addEventListener("click", () => {
-      const ok = layout.timer.side !== layout.point.side;
-      sideError?.classList.toggle("hidden", ok);
-      if (!ok) return;
-      saveAll();
-    });
-
     resetBtn?.addEventListener("click", () => {
       localStorage.removeItem(layoutKey(userId));
       localStorage.removeItem(profileKey(userId));
       location.reload();
     });
 
-    roomIdEl?.addEventListener("input", () => {
-      sessionStorage.setItem("last_room", roomIdEl.value.trim());
-      updateOverlayUrl();
-    });
-    updateOverlayUrl();
-
-    pasteRoomBtn?.addEventListener("click", async () => {
-      try {
-        const t = (await readClipboardText()).trim();
-        if (!t) return;
-        if (!roomIdEl) return;
-        roomIdEl.value = t.toLowerCase() === "test" ? "test" : t.replace(/\D/g, "").slice(0, 6);
-        dispatchInput(roomIdEl);
-      } catch {
-        alert("クリップボードの読み取りに失敗しました。ブラウザ設定/HTTPS/localhost を確認し、手動で貼り付けてください。");
-      }
-    });
-
-    copyOverlayBtn?.addEventListener("click", async () => {
-      const url = overlayUrlEl?.value || buildOverlayUrl("test");
-      await copyToClipboard(url);
-    });
-
-    openOverlayBtn?.addEventListener("click", () => {
-      const raw = (roomIdEl?.value || "").trim() || "test";
-      if (raw !== "test" && !/^\d{6}$/.test(raw)) {
-        alert("roomId は6桁の数字、または test を入力してください。");
-        return;
-      }
-      sessionStorage.setItem("last_room", raw);
-      const t = createOverlayAccessToken("open");
-      window.open(`./overlay.html?room=${encodeURIComponent(raw)}&access=${encodeURIComponent(t)}`, "_blank", "noreferrer");
-    });
-
     disableConflictingSideOptions();
     renderPaletteSelected();
+
+    // ensure persisted (auto-save) baseline
+    saveAll();
   }
 
   async function createRoom(db, hostId) {
@@ -877,6 +822,229 @@
     const accessInfo = consumeOverlayAccessToken(access);
     const showGear = !!accessInfo;
     gearBtn?.classList.toggle("hidden", !showGear);
+
+    // Adjust modal (overlay)
+    const adjustModal = qs("#ovAdjustModal");
+    const adjustCloseBtn = qs("#ovAdjustCloseBtn");
+    const closeAdjust = () => {
+      adjustModal?.classList.add("hidden");
+      adjustModal?.setAttribute("aria-hidden", "true");
+    };
+    const openAdjust = () => {
+      adjustModal?.classList.remove("hidden");
+      adjustModal?.setAttribute("aria-hidden", "false");
+      setTimeout(() => qs("#ovDsDisplayName")?.focus(), 0);
+    };
+    adjustCloseBtn?.addEventListener("click", closeAdjust);
+    adjustModal?.addEventListener("click", (e) => {
+      const t = e.target;
+      if (t?.dataset?.close) closeAdjust();
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && !(adjustModal?.classList.contains("hidden"))) closeAdjust();
+    });
+
+    // Firebase refs for syncing profile changes live
+    let playerRefForSync = null;
+    let authedUidForSync = null;
+    const syncProfileToFirebase = () => {
+      if (isTest) return;
+      if (!playerRefForSync || !authedUidForSync) return;
+      playerRefForSync.update({
+        authUid: authedUidForSync,
+        name: profile.name,
+        color: profile.color,
+        iconImage: profile.iconImage || "",
+      });
+    };
+
+    const initAdjustModalControls = () => {
+      const nameEl = qs("#ovDsDisplayName");
+      const pasteNameBtn = qs("#ovDsPasteNameBtn");
+      const paletteEl = qs("#ovDsColorPalette");
+      const imgEl = qs("#ovDsImage");
+      const clearImgBtn = qs("#ovDsClearImageBtn");
+      const sideError = qs("#ovDsSideError");
+      const resetBtn = qs("#ovDsResetBtn");
+      const timerScaleEl = qs("#ovDsTimerScale");
+      const pointScaleEl = qs("#ovDsPointScale");
+
+      const setRadio = (name, value) => {
+        const el = qs(`input[name="${name}"][value="${value}"]`);
+        if (el) el.checked = true;
+      };
+
+      const renderPaletteSelected = () => {
+        if (!paletteEl) return;
+        const cur = (profile.color || DEFAULT_PROFILE.color).toLowerCase();
+        paletteEl.querySelectorAll(".colorSwatch").forEach((btn) => {
+          const c = String(btn.getAttribute("data-color") || "").toLowerCase();
+          btn.classList.toggle("is-selected", !!c && c === cur);
+          if (c) btn.style.background = c;
+        });
+      };
+
+      const enforceSideConstraint = (changed) => {
+        const conflict = layout.timer.side === layout.point.side;
+        sideError?.classList.toggle("hidden", !conflict);
+        if (!conflict) return true;
+        const all = ["top", "bottom", "left", "right"];
+        if (changed === "timer") {
+          const alt = all.find((s) => s !== layout.point.side) || "top";
+          layout.timer.side = alt;
+          setRadio("ovDsTimerSide", layout.timer.side);
+        } else if (changed === "point") {
+          const alt = all.find((s) => s !== layout.timer.side) || "right";
+          layout.point.side = alt;
+          setRadio("ovDsPointSide", layout.point.side);
+        }
+        sideError?.classList.remove("hidden");
+        return false;
+      };
+
+      const disableConflictingSideOptions = () => {
+        const t = layout.timer.side;
+        const p = layout.point.side;
+        qsa('input[name="ovDsTimerSide"]').forEach((el) => {
+          el.disabled = el.value === p && !el.checked;
+        });
+        qsa('input[name="ovDsPointSide"]').forEach((el) => {
+          el.disabled = el.value === t && !el.checked;
+        });
+      };
+
+      // init UI values
+      if (nameEl) nameEl.value = profile.name || DEFAULT_PROFILE.name;
+      if (timerScaleEl) timerScaleEl.value = String(layout.timer.scale);
+      if (pointScaleEl) pointScaleEl.value = String(layout.point.scale);
+      setRadio("ovDsTimerVisible", layout.timer.visible ? "on" : "off");
+      setRadio("ovDsPointVisible", layout.point.visible ? "on" : "off");
+      setRadio("ovDsTimerSide", layout.timer.side);
+      setRadio("ovDsPointSide", layout.point.side);
+      renderPaletteSelected();
+      disableConflictingSideOptions();
+
+      // handlers (auto save)
+      nameEl?.addEventListener("input", () => {
+        profile.name = (nameEl.value || "").toString().slice(0, 24) || DEFAULT_PROFILE.name;
+        saveProfile(userId, profile);
+        syncProfileToFirebase();
+        applyAll();
+      });
+      pasteNameBtn?.addEventListener("click", async () => {
+        try {
+          const t = (await readClipboardText()).trim();
+          if (!t) return;
+          if (nameEl) nameEl.value = t.slice(0, 24);
+          dispatchInput(nameEl);
+        } catch {
+          alert("クリップボードの読み取りに失敗しました。ブラウザ設定/HTTPS/localhost を確認し、手動で貼り付けてください。");
+        }
+      });
+
+      paletteEl?.addEventListener("click", (e) => {
+        const t = e.target;
+        if (!t?.classList?.contains("colorSwatch")) return;
+        const c = String(t.getAttribute("data-color") || "");
+        if (!c) return;
+        profile.color = c;
+        saveProfile(userId, profile);
+        syncProfileToFirebase();
+        renderPaletteSelected();
+        applyAll();
+      });
+
+      imgEl?.addEventListener("change", () => {
+        const f = imgEl.files?.[0];
+        if (!f) return;
+        if (!f.type.startsWith("image/")) {
+          alert("画像ファイルを選択してください。");
+          imgEl.value = "";
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = () => {
+          profile.iconImage = String(reader.result || "");
+          saveProfile(userId, profile);
+          syncProfileToFirebase();
+          applyAll();
+        };
+        reader.readAsDataURL(f);
+      });
+      clearImgBtn?.addEventListener("click", () => {
+        profile.iconImage = "";
+        if (imgEl) imgEl.value = "";
+        saveProfile(userId, profile);
+        syncProfileToFirebase();
+        applyAll();
+      });
+
+      qsa('input[name="ovDsTimerVisible"]').forEach((el) =>
+        el.addEventListener("change", () => {
+          layout.timer.visible = el.value === "on";
+          saveLayout(userId, layout);
+          applyAll();
+        }),
+      );
+      qsa('input[name="ovDsPointVisible"]').forEach((el) =>
+        el.addEventListener("change", () => {
+          layout.point.visible = el.value === "on";
+          saveLayout(userId, layout);
+          applyAll();
+        }),
+      );
+      qsa('input[name="ovDsTimerSide"]').forEach((el) =>
+        el.addEventListener("change", () => {
+          if (!el.checked) return;
+          layout.timer.side = el.value;
+          enforceSideConstraint("timer");
+          disableConflictingSideOptions();
+          saveLayout(userId, layout);
+          applyAll();
+        }),
+      );
+      qsa('input[name="ovDsPointSide"]').forEach((el) =>
+        el.addEventListener("change", () => {
+          if (!el.checked) return;
+          layout.point.side = el.value;
+          enforceSideConstraint("point");
+          disableConflictingSideOptions();
+          saveLayout(userId, layout);
+          applyAll();
+        }),
+      );
+      timerScaleEl?.addEventListener("input", () => {
+        layout.timer.scale = clamp(Number(timerScaleEl.value), 0.5, 2.0);
+        saveLayout(userId, layout);
+        applyAll();
+      });
+      pointScaleEl?.addEventListener("input", () => {
+        layout.point.scale = clamp(Number(pointScaleEl.value), 0.5, 2.0);
+        saveLayout(userId, layout);
+        applyAll();
+      });
+
+      resetBtn?.addEventListener("click", () => {
+        localStorage.removeItem(layoutKey(userId));
+        localStorage.removeItem(profileKey(userId));
+        layout = loadLayout(userId);
+        profile = loadProfile(userId);
+        saveLayout(userId, layout);
+        saveProfile(userId, profile);
+        syncProfileToFirebase();
+        applyAll();
+        // reflect UI
+        if (nameEl) nameEl.value = profile.name || DEFAULT_PROFILE.name;
+        setRadio("ovDsTimerVisible", layout.timer.visible ? "on" : "off");
+        setRadio("ovDsPointVisible", layout.point.visible ? "on" : "off");
+        setRadio("ovDsTimerSide", layout.timer.side);
+        setRadio("ovDsPointSide", layout.point.side);
+        if (timerScaleEl) timerScaleEl.value = String(layout.timer.scale);
+        if (pointScaleEl) pointScaleEl.value = String(layout.point.scale);
+        renderPaletteSelected();
+        disableConflictingSideOptions();
+      });
+    };
     if (showGear) {
       // mode: "join" shows leave, "open" shows home only
       const mode = accessInfo?.mode || "open";
@@ -894,7 +1062,7 @@
       });
       adjustBtn?.addEventListener("click", () => {
         menu?.classList.add("hidden");
-        location.href = "./index.html#displaySettings";
+        openAdjust();
       });
       homeBtn?.addEventListener("click", () => {
         menu?.classList.add("hidden");
@@ -935,6 +1103,9 @@
                 color: profile.color,
                 iconImage: profile.iconImage || "",
               });
+              playerRefForSync = playerRef;
+              authedUidForSync = authed.uid;
+              syncProfileToFirebase();
               return;
             }
             playerRef.update({
@@ -943,13 +1114,20 @@
               color: profile.color,
               iconImage: profile.iconImage || "",
             });
+            playerRefForSync = playerRef;
+            authedUidForSync = authed.uid;
           });
+
+          if (showGear) initAdjustModalControls();
         });
       } else {
         // Firebase未設定でも“表示のみ”は継続（ただしroom同期は不可）
         // console.warn("Firebase config not ready");
       }
     }
+
+    // In test mode (no Firebase), still allow opening the adjust modal if gear is visible
+    if (isTest && showGear) initAdjustModalControls();
 
     const tick = () => {
       const remaining = computeRemainingSeconds(timerState);
@@ -965,6 +1143,7 @@
       layout = loadLayout(userId);
       profile = loadProfile(userId);
       testUserCount = clamp(Number(localStorage.getItem("test_user_count") || "3") || 3, 1, 12);
+      syncProfileToFirebase();
       applyAll();
     });
 

@@ -13,9 +13,6 @@
           <div class="brand__title">Quiz Sync</div>
           <div class="brand__sub">Realtime score &amp; timer overlay</div>
         </div>
-        <nav class="nav">
-          <a class="link" href="#displaySettings">表示調整</a>
-        </nav>
       </header>
 
       <section class="card">
@@ -25,7 +22,7 @@
           <button id="openJoinModalBtn" class="btn">ルームに参加（overlay表示）</button>
         </div>
         <p class="muted">
-          参加すると表示ページ（overlay）に遷移します。配信用URLは表示調整からコピーできます。
+          参加すると表示ページ（overlay）に遷移します。
         </p>
       </section>
 
@@ -120,32 +117,8 @@
         </div>
 
         <div class="row row--wrap" style="margin-top: 12px">
-          <button id="dsSaveBtn" class="btn btn--primary" type="button">保存</button>
+          <span class="muted">※操作は自動保存されます</span>
           <button id="dsResetBtn" class="btn btn--danger" type="button">初期化</button>
-          <span id="dsSaveStatus" class="muted"></span>
-        </div>
-
-        <hr class="hr" />
-
-        <div class="grid grid--3">
-          <div class="field">
-            <label class="label" for="dsRoomId">配信用 roomId</label>
-            <div class="inputRow">
-              <input id="dsRoomId" class="input mono" type="text" inputmode="numeric" maxlength="6" placeholder="例: 123456" />
-              <button id="dsPasteRoomBtn" class="btn btn--small" type="button">ペースト</button>
-            </div>
-          </div>
-          <div class="field">
-            <label class="label" for="dsOverlayUrl">overlay URL</label>
-            <input id="dsOverlayUrl" class="input mono" type="text" readonly />
-          </div>
-          <div class="field">
-            <label class="label">&nbsp;</label>
-            <div class="row row--wrap">
-              <button id="dsOpenOverlayBtn" class="btn" type="button">overlayを開く</button>
-              <button id="dsCopyOverlayBtn" class="btn" type="button">配信用リンクをコピー</button>
-            </div>
-          </div>
         </div>
       </section>
 

@@ -239,9 +239,9 @@ body {
 }
 
 .colorPalette {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(6, 34px);
   gap: 10px;
-  flex-wrap: wrap;
   align-items: center;
 }
 
@@ -476,6 +476,16 @@ body {
 .overlayItem--timer .overlayValue {
   font-size: 56px;
   letter-spacing: 0.02em;
+}
+
+.overlayItem--timer .overlayBox {
+  display: grid;
+  place-items: center;
+  text-align: center;
+}
+
+.overlayItem--timer .overlayValue {
+  margin-top: 0;
 }
 
 .overlayItem--point .overlayValue {
