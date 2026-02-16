@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Quiz Sync - Overlay</title>
+    <link rel="stylesheet" href="./style.css" />
+    <meta name="color-scheme" content="dark light" />
+  </head>
+  <body data-page="overlay" class="overlayBody">
+    <!-- 操作UIは置かない（表示専用） -->
+    <div id="overlayRoot" class="overlayRoot">
+      <div id="ovTimer" class="overlayItem overlayItem--timer">
+        <div class="overlayBox">
+          <div class="overlayLabel">TIMER</div>
+          <div id="ovTimerValue" class="overlayValue mono">--:--</div>
+        </div>
+      </div>
+
+      <div id="ovPoint" class="overlayItem overlayItem--point">
+        <div class="overlayBox">
+          <div class="overlayLabel">POINT</div>
+          <div class="overlayValue">
+            <span id="ovIcon" class="overlayIcon">⭐</span>
+            <span id="ovName" class="overlayName">--</span>
+            <span id="ovScore" class="overlayScore mono">0pt</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Firebase (compat) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+    <script src="./firebaseConfig.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>
+

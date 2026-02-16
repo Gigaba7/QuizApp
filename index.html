@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Quiz Sync - Home</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body data-page="home">
+    <main class="container">
+      <header class="header">
+        <div class="brand">
+          <div class="brand__title">Quiz Sync</div>
+          <div class="brand__sub">Realtime score &amp; timer overlay</div>
+        </div>
+        <nav class="nav">
+          <a class="link" href="./config.html">表示設定（config）</a>
+          <a class="link" href="./overlay.html?room=test">overlayテスト</a>
+        </nav>
+      </header>
+
+      <section class="card">
+        <h1 class="h1">ルーム</h1>
+        <div class="stack">
+          <button id="createRoomBtn" class="btn btn--primary">ルームを作成（ホスト）</button>
+          <button id="joinRoomBtn" class="btn">ルームに参加（overlay表示）</button>
+        </div>
+        <p class="muted">
+          参加者は事前に <span class="mono">config.html</span> でレイアウトを作っておき、当日は overlay の
+          <span class="mono">room</span> パラメータだけ変えればOKです。
+        </p>
+      </section>
+
+      <section class="card">
+        <h2 class="h2">現在のユーザーID（localStorage）</h2>
+        <div class="row row--wrap">
+          <code id="userIdView" class="mono pill"></code>
+          <button id="copyUserIdBtn" class="btn btn--small">コピー</button>
+        </div>
+        <p class="muted">このIDが Firebase の <span class="mono">players/{uid}</span> に対応します（ログイン不要）。</p>
+      </section>
+
+      <footer class="footer muted">
+        Firebase設定が未入力の場合でも <span class="mono">config</span> と <span class="mono">overlay?room=test</span> は動作します。
+      </footer>
+    </main>
+
+    <!-- Firebase (compat) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+    <script src="./firebaseConfig.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>
+
