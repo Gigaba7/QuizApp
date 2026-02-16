@@ -21,13 +21,8 @@
       </div>
     </div>
 
-    <!-- room参加後のみ表示するメニュー（OBSで直URLアクセス時は表示しない） -->
+    <!-- room参加後のみ表示（OBSで直URLアクセス時は表示しない） -->
     <button id="ovGearBtn" class="ovGear hidden" type="button" aria-label="メニュー">⚙</button>
-    <div id="ovMenu" class="ovMenu hidden" role="dialog" aria-modal="false">
-      <button id="ovAdjustBtn" class="btn btn--small" type="button">表示調整</button>
-      <button id="ovHomeBtn" class="btn btn--small" type="button">ホームに戻る</button>
-      <button id="ovLeaveBtn" class="btn btn--small btn--danger hidden" type="button">ルームから退出</button>
-    </div>
 
     <!-- 表示調整モーダル（accessがあるときのみ開ける想定） -->
     <section id="ovAdjustModal" class="modal hidden" aria-hidden="true">
@@ -114,6 +109,11 @@
         <div class="row row--wrap" style="margin-top: 12px">
           <span class="muted">※操作は自動保存されます</span>
           <button id="ovDsResetBtn" class="btn btn--danger" type="button">初期化</button>
+        </div>
+
+        <div class="row row--wrap" style="margin-top: 12px; justify-content: flex-end">
+          <button id="ovDsHomeBtn" class="btn" type="button">ホームに戻る</button>
+          <button id="ovDsLeaveBtn" class="btn btn--danger hidden" type="button">ルームから退出</button>
         </div>
       </div>
     </section>

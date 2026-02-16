@@ -781,6 +781,31 @@
       entries.sort((a, b) => String(a[1]?.name || "").localeCompare(String(b[1]?.name || "")));
       playersEl.innerHTML = "";
 
+      const fitRowFont = (cardEl, rowEl, scoreEl) => {
+        if (!cardEl || !rowEl || !scoreEl) return;
+        const base = 34;
+        const min = 18;
+        let size = base;
+        rowEl.style.fontSize = `${size}px`;
+
+        // If score wraps/overflows card width, shrink stepwise until it fits.
+        // Use bounding boxes so ellipsis on name doesn't cause false positives.
+        const cardRect = cardEl.getBoundingClientRect();
+        const paddingRight = 6;
+        for (let i = 0; i < 24; i++) {
+          const scoreRect = scoreEl.getBoundingClientRect();
+          const rowRect = rowEl.getBoundingClientRect();
+          const overflowX = scoreRect.right > cardRect.right - paddingRight || rowRect.right > cardRect.right - paddingRight;
+          if (!overflowX) break;
+          size -= 1;
+          if (size < min) {
+            size = min;
+            break;
+          }
+          rowEl.style.fontSize = `${size}px`;
+        }
+      };
+
       for (const [uid, p] of entries) {
         // hide only host player's card when hostPointVisible=false
         if (!hostPointVisible && hostAuthUid && String(p?.authUid || "") === hostAuthUid) continue;
@@ -813,6 +838,9 @@
         row.appendChild(score);
         card.appendChild(row);
         playersEl.appendChild(card);
+
+        // after insertion (layout available), shrink font only when it overflows
+        fitRowFont(card, row, score);
       }
     }
 
@@ -837,12 +865,8 @@
       }
     }
 
-    // Join-only gear menu (hide when opened directly / OBS)
+    // Join-only gear (hide when opened directly / OBS)
     const gearBtn = qs("#ovGearBtn");
-    const menu = qs("#ovMenu");
-    const adjustBtn = qs("#ovAdjustBtn");
-    const homeBtn = qs("#ovHomeBtn");
-    const leaveBtn = qs("#ovLeaveBtn");
     const access = getParam("access") || "";
     const accessInfo = consumeOverlayAccessToken(access);
     const showGear = !!accessInfo;
@@ -851,6 +875,8 @@
     // Adjust modal (overlay)
     const adjustModal = qs("#ovAdjustModal");
     const adjustCloseBtn = qs("#ovAdjustCloseBtn");
+    const modalHomeBtn = qs("#ovDsHomeBtn");
+    const modalLeaveBtn = qs("#ovDsLeaveBtn");
     const closeAdjust = () => {
       adjustModal?.classList.add("hidden");
       adjustModal?.setAttribute("aria-hidden", "true");
@@ -1071,30 +1097,16 @@
       });
     };
     if (showGear) {
-      // mode: "join" shows leave, "open" shows home only
-      const mode = accessInfo?.mode || "open";
-      leaveBtn?.classList.toggle("hidden", mode !== "join");
+      const mode = accessInfo?.mode || "open"; // "join" shows leave
+      modalLeaveBtn?.classList.toggle("hidden", mode !== "join");
 
-      gearBtn?.addEventListener("click", () => {
-        menu?.classList.toggle("hidden");
-      });
-      document.addEventListener("click", (e) => {
-        if (menu?.classList.contains("hidden")) return;
-        const t = e.target;
-        if (t === gearBtn) return;
-        if (menu?.contains(t)) return;
-        menu?.classList.add("hidden");
-      });
-      adjustBtn?.addEventListener("click", () => {
-        menu?.classList.add("hidden");
-        openAdjust();
-      });
-      homeBtn?.addEventListener("click", () => {
-        menu?.classList.add("hidden");
+      gearBtn?.addEventListener("click", openAdjust);
+      modalHomeBtn?.addEventListener("click", () => {
+        closeAdjust();
         location.href = "./index.html";
       });
-      leaveBtn?.addEventListener("click", () => {
-        menu?.classList.add("hidden");
+      modalLeaveBtn?.addEventListener("click", () => {
+        closeAdjust();
         location.href = "./index.html";
       });
     }

@@ -520,6 +520,7 @@ body {
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
+  overflow: hidden;
 }
 
 .pointRow {
@@ -530,6 +531,8 @@ body {
   font-size: 34px;
   font-weight: 900;
   line-height: 1.1;
+  flex-wrap: nowrap;
+  white-space: nowrap;
 }
 
 .pointRow .name {
@@ -537,6 +540,7 @@ body {
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 260px;
+  min-width: 0;
 }
 
 .pointRow .score {
@@ -561,20 +565,7 @@ body {
   font-weight: 900;
 }
 
-.ovMenu {
-  position: fixed;
-  top: 66px;
-  right: 14px;
-  z-index: 70;
-  display: grid;
-  gap: 10px;
-  padding: 12px;
-  border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: rgba(0, 0, 0, 0.55);
-  backdrop-filter: blur(10px);
-  box-shadow: var(--shadow);
-}
+/* (removed) ovMenu - gear opens modal directly */
 
 /* (removed) overlay test panel */
 
