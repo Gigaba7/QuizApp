@@ -238,6 +238,28 @@ body {
   padding: 6px 10px;
 }
 
+.colorPalette {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.colorSwatch {
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.06);
+  cursor: pointer;
+  padding: 0;
+}
+
+.colorSwatch.is-selected {
+  outline: 3px solid rgba(124, 92, 255, 0.45);
+  outline-offset: 2px;
+}
+
 .radio {
   display: inline-flex;
   align-items: center;
@@ -493,6 +515,38 @@ body {
 .scoreRow .score {
   font-family: var(--mono);
   opacity: 0.95;
+}
+
+/* Overlay gear (shown only after join via session) */
+.ovGear {
+  position: fixed;
+  top: 14px;
+  right: 14px;
+  z-index: 70;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(0, 0, 0, 0.35);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.ovMenu {
+  position: fixed;
+  top: 66px;
+  right: 14px;
+  z-index: 70;
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(10px);
+  box-shadow: var(--shadow);
 }
 
 /* (removed) overlay test panel */

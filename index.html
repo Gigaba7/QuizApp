@@ -14,8 +14,7 @@
           <div class="brand__sub">Realtime score &amp; timer overlay</div>
         </div>
         <nav class="nav">
-          <a class="link" href="./config.html">表示設定（config）</a>
-          <a class="link" href="./overlay.html?room=test">overlayテスト</a>
+          <a class="link" href="#displaySettings">表示調整</a>
         </nav>
       </header>
 
@@ -26,9 +25,126 @@
           <button id="openJoinModalBtn" class="btn">ルームに参加（overlay表示）</button>
         </div>
         <p class="muted">
-          事前の配置調整は <span class="mono">overlay?room=test</span> で行い、当日は overlay の
-          <span class="mono">room</span> パラメータだけ変えればOKです。
+          参加すると表示ページ（overlay）に遷移します。配信用URLは表示調整からコピーできます。
         </p>
+      </section>
+
+      <section id="displaySettings" class="card">
+        <div class="row row--between row--wrap">
+          <h2 class="h2" style="margin: 0">表示調整</h2>
+          <span class="muted">※設定はこの端末ごとに保存されます</span>
+        </div>
+
+        <div class="grid grid--3" style="margin-top: 10px">
+          <div class="field">
+            <label class="label" for="dsDisplayName">表示名</label>
+            <div class="inputRow">
+              <input id="dsDisplayName" class="input" type="text" maxlength="24" placeholder="例: Player 1" />
+              <button id="dsPasteNameBtn" class="btn btn--small" type="button">ペースト</button>
+            </div>
+          </div>
+          <div class="field">
+            <label class="label">カラー</label>
+            <div id="dsColorPalette" class="colorPalette" role="group" aria-label="カラー選択">
+              <button class="colorSwatch" type="button" data-color="#7c5cff" aria-label="紫"></button>
+              <button class="colorSwatch" type="button" data-color="#2fe1a0" aria-label="緑"></button>
+              <button class="colorSwatch" type="button" data-color="#00c2ff" aria-label="水色"></button>
+              <button class="colorSwatch" type="button" data-color="#ffb020" aria-label="オレンジ"></button>
+              <button class="colorSwatch" type="button" data-color="#ff3b66" aria-label="ピンク"></button>
+              <button class="colorSwatch" type="button" data-color="#ffffff" aria-label="白"></button>
+              <button class="colorSwatch" type="button" data-color="#9aa4b2" aria-label="グレー"></button>
+              <button id="dsCustomColorBtn" class="btn btn--small" type="button">カスタム</button>
+            </div>
+            <input id="dsCustomColorPicker" class="hidden" type="color" />
+          </div>
+          <div class="field">
+            <label class="label" for="dsImage">背景画像（ポイント枠）</label>
+            <input id="dsImage" class="input" type="file" accept="image/*" />
+            <div class="row row--wrap">
+              <button id="dsClearImageBtn" class="btn btn--small" type="button">画像を削除</button>
+            </div>
+          </div>
+        </div>
+
+        <hr class="hr" />
+
+        <p id="dsSideError" class="notice notice--error hidden">タイマーとポイントは同じ位置を選べません。</p>
+        <div class="grid grid--2">
+          <div class="field">
+            <div class="label">タイマー</div>
+            <div class="row row--wrap">
+              <label class="radio"><input type="radio" name="dsTimerVisible" value="on" /> 表示</label>
+              <label class="radio"><input type="radio" name="dsTimerVisible" value="off" /> 非表示</label>
+            </div>
+            <div class="row row--wrap" style="margin-top: 6px">
+              <label class="radio"><input type="radio" name="dsTimerSide" value="top" /> 上</label>
+              <label class="radio"><input type="radio" name="dsTimerSide" value="bottom" /> 下</label>
+              <label class="radio"><input type="radio" name="dsTimerSide" value="left" /> 左</label>
+              <label class="radio"><input type="radio" name="dsTimerSide" value="right" /> 右</label>
+            </div>
+            <div class="field" style="margin-top: 6px">
+              <label class="label" for="dsTimerScale">scale</label>
+              <input id="dsTimerScale" class="input" type="range" min="0.5" max="2" step="0.1" />
+            </div>
+          </div>
+          <div class="field">
+            <div class="label">ポイント</div>
+            <div class="row row--wrap">
+              <label class="radio"><input type="radio" name="dsPointVisible" value="on" /> 表示</label>
+              <label class="radio"><input type="radio" name="dsPointVisible" value="off" /> 非表示</label>
+            </div>
+            <div class="row row--wrap" style="margin-top: 6px">
+              <label class="radio"><input type="radio" name="dsPointSide" value="top" /> 上</label>
+              <label class="radio"><input type="radio" name="dsPointSide" value="bottom" /> 下</label>
+              <label class="radio"><input type="radio" name="dsPointSide" value="left" /> 左</label>
+              <label class="radio"><input type="radio" name="dsPointSide" value="right" /> 右</label>
+            </div>
+            <div class="field" style="margin-top: 6px">
+              <label class="label" for="dsPointScale">scale</label>
+              <input id="dsPointScale" class="input" type="range" min="0.5" max="2" step="0.1" />
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid--2" style="margin-top: 12px">
+          <div class="field">
+            <label class="label" for="dsTestUserCount">テスト表示：ユーザー数</label>
+            <input id="dsTestUserCount" class="input" type="number" min="1" max="12" step="1" />
+          </div>
+          <div class="field">
+            <label class="label">&nbsp;</label>
+            <button id="dsOpenTestBtn" class="btn" type="button">テスト表示を開く</button>
+          </div>
+        </div>
+
+        <div class="row row--wrap" style="margin-top: 12px">
+          <button id="dsSaveBtn" class="btn btn--primary" type="button">保存</button>
+          <button id="dsResetBtn" class="btn btn--danger" type="button">初期化</button>
+          <span id="dsSaveStatus" class="muted"></span>
+        </div>
+
+        <hr class="hr" />
+
+        <div class="grid grid--3">
+          <div class="field">
+            <label class="label" for="dsRoomId">配信用 roomId</label>
+            <div class="inputRow">
+              <input id="dsRoomId" class="input mono" type="text" inputmode="numeric" maxlength="6" placeholder="例: 123456" />
+              <button id="dsPasteRoomBtn" class="btn btn--small" type="button">ペースト</button>
+            </div>
+          </div>
+          <div class="field">
+            <label class="label" for="dsOverlayUrl">overlay URL</label>
+            <input id="dsOverlayUrl" class="input mono" type="text" readonly />
+          </div>
+          <div class="field">
+            <label class="label">&nbsp;</label>
+            <div class="row row--wrap">
+              <button id="dsOpenOverlayBtn" class="btn" type="button">overlayを開く</button>
+              <button id="dsCopyOverlayBtn" class="btn" type="button">配信用リンクをコピー</button>
+            </div>
+          </div>
+        </div>
       </section>
 
       <section id="joinModal" class="modal hidden" aria-hidden="true">

@@ -86,6 +86,27 @@
     return url.searchParams.get(name);
   }
 
+  function createOverlayAccessToken(mode) {
+    const token = (typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : uuidFallback()).replace(/-/g, "");
+    const key = `overlay_access_${token}`;
+    localStorage.setItem(key, JSON.stringify({ ts: Date.now(), mode: mode || "open" }));
+    return token;
+  }
+
+  function consumeOverlayAccessToken(token) {
+    if (!token) return null;
+    const key = `overlay_access_${token}`;
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    localStorage.removeItem(key); // one-time
+    const data = safeJsonParse(raw, null);
+    const ts = Number(data?.ts || 0);
+    const mode = String(data?.mode || "open");
+    if (!ts) return null;
+    if (Date.now() - ts > 2 * 60 * 1000) return null; // TTL 2 min
+    return { mode };
+  }
+
   function setText(el, text) {
     if (!el) return;
     el.textContent = text;
@@ -259,7 +280,9 @@
         alert("ルームIDは6桁の数字、または test を入力してください。");
         return;
       }
-      location.href = `./overlay.html?room=${encodeURIComponent(roomId)}`;
+      sessionStorage.setItem("last_room", roomId);
+      const t = createOverlayAccessToken("join");
+      location.href = `./overlay.html?room=${encodeURIComponent(roomId)}&access=${encodeURIComponent(t)}`;
     };
     goBtn?.addEventListener("click", nav);
     input?.addEventListener("keydown", (e) => {
@@ -282,6 +305,272 @@
         alert("クリップボードの読み取りに失敗しました。ブラウザ設定/HTTPS/localhost を確認し、手動で貼り付けてください。");
       }
     });
+
+    // Display settings (moved here)
+    initDisplaySettingsOnHome();
+  }
+
+  function initDisplaySettingsOnHome() {
+    const userId = getOrCreateUserId();
+    let layout = loadLayout(userId);
+    let profile = loadProfile(userId);
+
+    const nameEl = qs("#dsDisplayName");
+    const paletteEl = qs("#dsColorPalette");
+    const customBtn = qs("#dsCustomColorBtn");
+    const customPicker = qs("#dsCustomColorPicker");
+    const imgEl = qs("#dsImage");
+    const clearImgBtn = qs("#dsClearImageBtn");
+    const pasteNameBtn = qs("#dsPasteNameBtn");
+
+    const timerScaleEl = qs("#dsTimerScale");
+    const pointScaleEl = qs("#dsPointScale");
+
+    const saveBtn = qs("#dsSaveBtn");
+    const resetBtn = qs("#dsResetBtn");
+    const saveStatus = qs("#dsSaveStatus");
+    const sideError = qs("#dsSideError");
+
+    const testCountEl = qs("#dsTestUserCount");
+    const openTestBtn = qs("#dsOpenTestBtn");
+
+    const roomIdEl = qs("#dsRoomId");
+    const pasteRoomBtn = qs("#dsPasteRoomBtn");
+    const overlayUrlEl = qs("#dsOverlayUrl");
+    const copyOverlayBtn = qs("#dsCopyOverlayBtn");
+    const openOverlayBtn = qs("#dsOpenOverlayBtn");
+
+    const setRadio = (name, value) => {
+      const el = qs(`input[name="${name}"][value="${value}"]`);
+      if (el) el.checked = true;
+    };
+
+    // init UI
+    if (nameEl) nameEl.value = profile.name || DEFAULT_PROFILE.name;
+    if (customPicker) customPicker.value = profile.color || DEFAULT_PROFILE.color;
+    if (timerScaleEl) timerScaleEl.value = String(layout.timer.scale);
+    if (pointScaleEl) pointScaleEl.value = String(layout.point.scale);
+
+    setRadio("dsTimerVisible", layout.timer.visible ? "on" : "off");
+    setRadio("dsPointVisible", layout.point.visible ? "on" : "off");
+    setRadio("dsTimerSide", layout.timer.side);
+    setRadio("dsPointSide", layout.point.side);
+
+    // preload last room
+    const lastRoom = sessionStorage.getItem("last_room") || "";
+    if (roomIdEl && lastRoom && /^\d{6}$/.test(lastRoom)) roomIdEl.value = lastRoom;
+
+    // test user count
+    let testUserCount = Number(localStorage.getItem("test_user_count") || "3") || 3;
+    testUserCount = clamp(testUserCount, 1, 12);
+    if (testCountEl) testCountEl.value = String(testUserCount);
+
+    function enforceSideConstraint(changed) {
+      const conflict = layout.timer.side === layout.point.side;
+      sideError?.classList.toggle("hidden", !conflict);
+      if (!conflict) return true;
+      const all = ["top", "bottom", "left", "right"];
+      if (changed === "timer") {
+        const alt = all.find((s) => s !== layout.point.side) || "top";
+        layout.timer.side = alt;
+        setRadio("dsTimerSide", layout.timer.side);
+      } else if (changed === "point") {
+        const alt = all.find((s) => s !== layout.timer.side) || "right";
+        layout.point.side = alt;
+        setRadio("dsPointSide", layout.point.side);
+      }
+      sideError?.classList.remove("hidden");
+      return false;
+    }
+
+    function disableConflictingSideOptions() {
+      const t = layout.timer.side;
+      const p = layout.point.side;
+      qsa('input[name="dsTimerSide"]').forEach((el) => {
+        el.disabled = el.value === p && !el.checked;
+      });
+      qsa('input[name="dsPointSide"]').forEach((el) => {
+        el.disabled = el.value === t && !el.checked;
+      });
+    }
+
+    function updateOverlayUrl() {
+      const raw = (roomIdEl?.value || "").trim();
+      const room = raw || "test";
+      if (overlayUrlEl) overlayUrlEl.value = buildOverlayUrl(room);
+    }
+
+    function setSaved(msg) {
+      if (!saveStatus) return;
+      saveStatus.textContent = msg;
+      setTimeout(() => {
+        if (saveStatus.textContent === msg) saveStatus.textContent = "";
+      }, 900);
+    }
+
+    function saveAll() {
+      saveLayout(userId, layout);
+      saveProfile(userId, profile);
+      disableConflictingSideOptions();
+      setSaved("保存しました");
+    }
+
+    nameEl?.addEventListener("input", () => {
+      profile.name = (nameEl.value || "").toString().slice(0, 24) || DEFAULT_PROFILE.name;
+    });
+
+    function renderPaletteSelected() {
+      if (!paletteEl) return;
+      const cur = (profile.color || DEFAULT_PROFILE.color).toLowerCase();
+      paletteEl.querySelectorAll(".colorSwatch").forEach((btn) => {
+        const c = String(btn.getAttribute("data-color") || "").toLowerCase();
+        btn.classList.toggle("is-selected", !!c && c === cur);
+        if (c) btn.style.background = c;
+      });
+    }
+
+    paletteEl?.addEventListener("click", (e) => {
+      const t = e.target;
+      if (!t?.classList?.contains("colorSwatch")) return;
+      const c = String(t.getAttribute("data-color") || "");
+      if (!c) return;
+      profile.color = c;
+      if (customPicker) customPicker.value = c;
+      renderPaletteSelected();
+    });
+
+    customBtn?.addEventListener("click", () => {
+      customPicker?.click();
+    });
+    customPicker?.addEventListener("input", () => {
+      profile.color = String(customPicker.value || "") || DEFAULT_PROFILE.color;
+      renderPaletteSelected();
+    });
+
+    pasteNameBtn?.addEventListener("click", async () => {
+      try {
+        const t = (await readClipboardText()).trim();
+        if (!t) return;
+        if (nameEl) nameEl.value = t.slice(0, 24);
+        dispatchInput(nameEl);
+      } catch {
+        alert("クリップボードの読み取りに失敗しました。ブラウザ設定/HTTPS/localhost を確認し、手動で貼り付けてください。");
+      }
+    });
+
+    imgEl?.addEventListener("change", () => {
+      const f = imgEl.files?.[0];
+      if (!f) return;
+      if (!f.type.startsWith("image/")) {
+        alert("画像ファイルを選択してください。");
+        imgEl.value = "";
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        profile.iconImage = String(reader.result || "");
+      };
+      reader.readAsDataURL(f);
+    });
+    clearImgBtn?.addEventListener("click", () => {
+      profile.iconImage = "";
+      if (imgEl) imgEl.value = "";
+    });
+
+    qsa('input[name="dsTimerVisible"]').forEach((el) =>
+      el.addEventListener("change", () => {
+        layout.timer.visible = el.value === "on";
+      }),
+    );
+    qsa('input[name="dsPointVisible"]').forEach((el) =>
+      el.addEventListener("change", () => {
+        layout.point.visible = el.value === "on";
+      }),
+    );
+    qsa('input[name="dsTimerSide"]').forEach((el) =>
+      el.addEventListener("change", () => {
+        if (!el.checked) return;
+        layout.timer.side = el.value;
+        enforceSideConstraint("timer");
+        disableConflictingSideOptions();
+      }),
+    );
+    qsa('input[name="dsPointSide"]').forEach((el) =>
+      el.addEventListener("change", () => {
+        if (!el.checked) return;
+        layout.point.side = el.value;
+        enforceSideConstraint("point");
+        disableConflictingSideOptions();
+      }),
+    );
+
+    timerScaleEl?.addEventListener("input", () => {
+      layout.timer.scale = clamp(Number(timerScaleEl.value), 0.5, 2.0);
+    });
+    pointScaleEl?.addEventListener("input", () => {
+      layout.point.scale = clamp(Number(pointScaleEl.value), 0.5, 2.0);
+    });
+
+    testCountEl?.addEventListener("input", () => {
+      testUserCount = clamp(Number(testCountEl.value || 1), 1, 12);
+      localStorage.setItem("test_user_count", String(testUserCount));
+    });
+
+    openTestBtn?.addEventListener("click", () => {
+      sessionStorage.setItem("last_room", "test");
+      const t = createOverlayAccessToken("open");
+      window.open(`./overlay.html?room=test&access=${encodeURIComponent(t)}`, "_blank", "noreferrer");
+    });
+
+    saveBtn?.addEventListener("click", () => {
+      const ok = layout.timer.side !== layout.point.side;
+      sideError?.classList.toggle("hidden", ok);
+      if (!ok) return;
+      saveAll();
+    });
+
+    resetBtn?.addEventListener("click", () => {
+      localStorage.removeItem(layoutKey(userId));
+      localStorage.removeItem(profileKey(userId));
+      location.reload();
+    });
+
+    roomIdEl?.addEventListener("input", () => {
+      sessionStorage.setItem("last_room", roomIdEl.value.trim());
+      updateOverlayUrl();
+    });
+    updateOverlayUrl();
+
+    pasteRoomBtn?.addEventListener("click", async () => {
+      try {
+        const t = (await readClipboardText()).trim();
+        if (!t) return;
+        if (!roomIdEl) return;
+        roomIdEl.value = t.toLowerCase() === "test" ? "test" : t.replace(/\D/g, "").slice(0, 6);
+        dispatchInput(roomIdEl);
+      } catch {
+        alert("クリップボードの読み取りに失敗しました。ブラウザ設定/HTTPS/localhost を確認し、手動で貼り付けてください。");
+      }
+    });
+
+    copyOverlayBtn?.addEventListener("click", async () => {
+      const url = overlayUrlEl?.value || buildOverlayUrl("test");
+      await copyToClipboard(url);
+    });
+
+    openOverlayBtn?.addEventListener("click", () => {
+      const raw = (roomIdEl?.value || "").trim() || "test";
+      if (raw !== "test" && !/^\d{6}$/.test(raw)) {
+        alert("roomId は6桁の数字、または test を入力してください。");
+        return;
+      }
+      sessionStorage.setItem("last_room", raw);
+      const t = createOverlayAccessToken("open");
+      window.open(`./overlay.html?room=${encodeURIComponent(raw)}&access=${encodeURIComponent(t)}`, "_blank", "noreferrer");
+    });
+
+    disableConflictingSideOptions();
+    renderPaletteSelected();
   }
 
   async function createRoom(db, hostId) {
@@ -504,215 +793,8 @@
   }
 
   function initConfig() {
-    const userId = getOrCreateUserId();
-    let layout = loadLayout(userId);
-    let profile = loadProfile(userId);
-
-    const nameEl = qs("#cfgDisplayName");
-    const colorEl = qs("#cfgColor");
-    const imgEl = qs("#cfgImage");
-    const clearImgBtn = qs("#cfgClearImageBtn");
-    const pasteNameBtn = qs("#cfgPasteNameBtn");
-
-    const timerScaleEl = qs("#cfgTimerScale");
-    const pointScaleEl = qs("#cfgPointScale");
-
-    const saveBtn = qs("#cfgSaveBtn");
-    const resetBtn = qs("#cfgResetBtn");
-    const saveStatus = qs("#cfgSaveStatus");
-    const sideError = qs("#cfgSideError");
-
-    const testCountEl = qs("#cfgTestUserCount");
-
-    const roomIdEl = qs("#cfgRoomId");
-    const pasteRoomBtn = qs("#cfgPasteRoomBtn");
-    const overlayUrlEl = qs("#cfgOverlayUrl");
-    const copyOverlayBtn = qs("#cfgCopyOverlayBtn");
-
-    const setRadio = (name, value) => {
-      const el = qs(`input[name="${name}"][value="${value}"]`);
-      if (el) el.checked = true;
-    };
-
-    // init UI values
-    if (nameEl) nameEl.value = profile.name || DEFAULT_PROFILE.name;
-    if (colorEl) colorEl.value = profile.color || DEFAULT_PROFILE.color;
-    if (timerScaleEl) timerScaleEl.value = String(layout.timer.scale);
-    if (pointScaleEl) pointScaleEl.value = String(layout.point.scale);
-
-    setRadio("cfgTimerVisible", layout.timer.visible ? "on" : "off");
-    setRadio("cfgPointVisible", layout.point.visible ? "on" : "off");
-    setRadio("cfgTimerSide", layout.timer.side);
-    setRadio("cfgPointSide", layout.point.side);
-
-    // test user count
-    let testUserCount = Number(localStorage.getItem("test_user_count") || "3") || 3;
-    testUserCount = clamp(testUserCount, 1, 12);
-    if (testCountEl) testCountEl.value = String(testUserCount);
-
-    function enforceSideConstraint(changed) {
-      const conflict = layout.timer.side === layout.point.side;
-      sideError?.classList.toggle("hidden", !conflict);
-      if (!conflict) return true;
-
-      // revert changed to a safe alternative
-      const all = ["top", "bottom", "left", "right"];
-      if (changed === "timer") {
-        const alt = all.find((s) => s !== layout.point.side) || "top";
-        layout.timer.side = alt;
-        setRadio("cfgTimerSide", layout.timer.side);
-      } else if (changed === "point") {
-        const alt = all.find((s) => s !== layout.timer.side) || "right";
-        layout.point.side = alt;
-        setRadio("cfgPointSide", layout.point.side);
-      }
-      sideError?.classList.remove("hidden");
-      return false;
-    }
-
-    function disableConflictingSideOptions() {
-      const t = layout.timer.side;
-      const p = layout.point.side;
-      qsa('input[name="cfgTimerSide"]').forEach((el) => {
-        el.disabled = el.value === p && !el.checked;
-      });
-      qsa('input[name="cfgPointSide"]').forEach((el) => {
-        el.disabled = el.value === t && !el.checked;
-      });
-    }
-
-    function updateOverlayUrl() {
-      const raw = (roomIdEl?.value || "").trim();
-      const room = raw || "test";
-      if (overlayUrlEl) overlayUrlEl.value = buildOverlayUrl(room);
-    }
-
-    function setSaved(msg) {
-      if (!saveStatus) return;
-      saveStatus.textContent = msg;
-      setTimeout(() => {
-        if (saveStatus.textContent === msg) saveStatus.textContent = "";
-      }, 900);
-    }
-
-    function saveAll() {
-      saveLayout(userId, layout);
-      saveProfile(userId, profile);
-      disableConflictingSideOptions();
-      setSaved("保存しました");
-    }
-
-    // Handlers
-    nameEl?.addEventListener("input", () => {
-      profile.name = (nameEl.value || "").toString().slice(0, 24) || DEFAULT_PROFILE.name;
-    });
-    colorEl?.addEventListener("input", () => {
-      profile.color = (colorEl.value || "").toString() || DEFAULT_PROFILE.color;
-    });
-
-    pasteNameBtn?.addEventListener("click", async () => {
-      try {
-        const t = (await readClipboardText()).trim();
-        if (!t) return;
-        if (nameEl) nameEl.value = t.slice(0, 24);
-        dispatchInput(nameEl);
-      } catch {
-        alert("クリップボードの読み取りに失敗しました。ブラウザ設定/HTTPS/localhost を確認し、手動で貼り付けてください。");
-      }
-    });
-
-    imgEl?.addEventListener("change", () => {
-      const f = imgEl.files?.[0];
-      if (!f) return;
-      if (!f.type.startsWith("image/")) {
-        alert("画像ファイルを選択してください。");
-        imgEl.value = "";
-        return;
-      }
-      const reader = new FileReader();
-      reader.onload = () => {
-        profile.iconImage = String(reader.result || "");
-      };
-      reader.readAsDataURL(f);
-    });
-    clearImgBtn?.addEventListener("click", () => {
-      profile.iconImage = "";
-      if (imgEl) imgEl.value = "";
-    });
-
-    qsa('input[name="cfgTimerVisible"]').forEach((el) =>
-      el.addEventListener("change", () => {
-        layout.timer.visible = el.value === "on";
-      }),
-    );
-    qsa('input[name="cfgPointVisible"]').forEach((el) =>
-      el.addEventListener("change", () => {
-        layout.point.visible = el.value === "on";
-      }),
-    );
-    qsa('input[name="cfgTimerSide"]').forEach((el) =>
-      el.addEventListener("change", () => {
-        if (!el.checked) return;
-        layout.timer.side = el.value;
-        enforceSideConstraint("timer");
-        disableConflictingSideOptions();
-      }),
-    );
-    qsa('input[name="cfgPointSide"]').forEach((el) =>
-      el.addEventListener("change", () => {
-        if (!el.checked) return;
-        layout.point.side = el.value;
-        enforceSideConstraint("point");
-        disableConflictingSideOptions();
-      }),
-    );
-
-    timerScaleEl?.addEventListener("input", () => {
-      layout.timer.scale = clamp(Number(timerScaleEl.value), 0.5, 2.0);
-    });
-    pointScaleEl?.addEventListener("input", () => {
-      layout.point.scale = clamp(Number(pointScaleEl.value), 0.5, 2.0);
-    });
-
-    testCountEl?.addEventListener("input", () => {
-      testUserCount = clamp(Number(testCountEl.value || 1), 1, 12);
-      localStorage.setItem("test_user_count", String(testUserCount));
-    });
-
-    saveBtn?.addEventListener("click", () => {
-      const ok = layout.timer.side !== layout.point.side;
-      sideError?.classList.toggle("hidden", ok);
-      if (!ok) return;
-      saveAll();
-    });
-
-    resetBtn?.addEventListener("click", () => {
-      localStorage.removeItem(layoutKey(userId));
-      localStorage.removeItem(profileKey(userId));
-      location.reload();
-    });
-
-    roomIdEl?.addEventListener("input", updateOverlayUrl);
-    updateOverlayUrl();
-
-    pasteRoomBtn?.addEventListener("click", async () => {
-      try {
-        const t = (await readClipboardText()).trim();
-        if (!t) return;
-        if (!roomIdEl) return;
-        roomIdEl.value = t.toLowerCase() === "test" ? "test" : t.replace(/\D/g, "").slice(0, 6);
-        dispatchInput(roomIdEl);
-      } catch {
-        alert("クリップボードの読み取りに失敗しました。ブラウザ設定/HTTPS/localhost を確認し、手動で貼り付けてください。");
-      }
-    });
-
-    copyOverlayBtn?.addEventListener("click", async () => {
-      const url = overlayUrlEl?.value || buildOverlayUrl("test");
-      await copyToClipboard(url);
-    });
-
-    disableConflictingSideOptions();
+    // Settings moved to index.html
+    location.replace("./index.html#displaySettings");
   }
 
   function initOverlay() {
@@ -773,6 +855,45 @@
         pointListEl?.classList.add("hidden");
         pointSingleEl?.classList.remove("hidden");
       }
+    }
+
+    // Join-only gear menu (hide when opened directly / OBS)
+    const gearBtn = qs("#ovGearBtn");
+    const menu = qs("#ovMenu");
+    const adjustBtn = qs("#ovAdjustBtn");
+    const homeBtn = qs("#ovHomeBtn");
+    const leaveBtn = qs("#ovLeaveBtn");
+    const access = getParam("access") || "";
+    const accessInfo = consumeOverlayAccessToken(access);
+    const showGear = !!accessInfo;
+    gearBtn?.classList.toggle("hidden", !showGear);
+    if (showGear) {
+      // mode: "join" shows leave, "open" shows home only
+      const mode = accessInfo?.mode || "open";
+      leaveBtn?.classList.toggle("hidden", mode !== "join");
+
+      gearBtn?.addEventListener("click", () => {
+        menu?.classList.toggle("hidden");
+      });
+      document.addEventListener("click", (e) => {
+        if (menu?.classList.contains("hidden")) return;
+        const t = e.target;
+        if (t === gearBtn) return;
+        if (menu?.contains(t)) return;
+        menu?.classList.add("hidden");
+      });
+      adjustBtn?.addEventListener("click", () => {
+        menu?.classList.add("hidden");
+        location.href = "./index.html#displaySettings";
+      });
+      homeBtn?.addEventListener("click", () => {
+        menu?.classList.add("hidden");
+        location.href = "./index.html";
+      });
+      leaveBtn?.addEventListener("click", () => {
+        menu?.classList.add("hidden");
+        location.href = "./index.html";
+      });
     }
 
     if (!isTest) {
