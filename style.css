@@ -135,6 +135,17 @@ body {
   flex-wrap: wrap;
 }
 
+.inputRow {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.inputRow .input {
+  flex: 1;
+  min-width: 0;
+}
+
 .grid {
   display: grid;
   gap: 12px;
@@ -280,6 +291,31 @@ body {
   font-size: 12px;
 }
 
+/* Modal */
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+}
+
+.modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(3px);
+}
+
+.modal__panel {
+  position: relative;
+  width: min(560px, calc(100vw - 28px));
+  margin: 10vh auto 0;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0.05));
+  box-shadow: var(--shadow);
+  padding: 14px;
+}
+
 /* Host room - players */
 .players {
   display: grid;
@@ -314,6 +350,9 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.14);
   background: rgba(0, 0, 0, 0.22);
   font-size: 18px;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 .playerName {
@@ -394,6 +433,9 @@ body {
   background: rgba(0, 0, 0, 0.42);
   backdrop-filter: blur(10px);
   box-shadow: 0 16px 50px rgba(0, 0, 0, 0.35);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 .overlayLabel {

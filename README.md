@@ -27,6 +27,12 @@
 
 `firebaseConfig.js` の `YOUR_*` を Firebase Console の値で置き換えてください。
 
+### 1.5) Authentication（匿名）を有効化（ホスト専用操作のため推奨）
+
+ホストだけがタイマー/スコアを書き込めるようにするため、Firebase Console で匿名認証を有効化してください。
+
+- Firebase Console → **Authentication** → **Sign-in method** → **Anonymous** を有効化
+
 ### 2) 事前（参加者）
 
 - `config.html` を開き、表示名/色/アイコン/レイアウトを保存
@@ -63,7 +69,9 @@ rooms/{roomId}
 
 ## 参考: DBルール（例）
 
-本アプリはログイン無し（匿名UUID）なので、実運用は必ずルール設計が必要です。ここでは例のみ。
+本アプリはUIログイン無しですが、**匿名認証（Anonymous）** を内部で使用できます。実運用は必ずルール設計が必要です。ここでは例のみ。
+
+### デバッグ用（非推奨・全開放）
 
 ```json
 {
@@ -78,3 +86,60 @@ rooms/{roomId}
 }
 ```
 
+### 推奨（ホストだけ timer/score 操作）
+
+- ルーム作成: 認証済みユーザーなら作成可（`hostId === auth.uid` 必須）
+- タイマー: `hostId` のユーザーだけ書き込み可
+- スコア: `hostId` のユーザーだけ `players/{uid}/score` 書き込み可
+- プレイヤー情報（name/color/icon）: 各ユーザーが自分の `authUid` と一致する場合のみ更新可
+
+```json
+{
+  "rules": {
+    "rooms": {
+      "$roomId": {
+        ".read": true,
+        ".write": "auth != null && !data.exists() && newData.child('hostId').val() === auth.uid",
+        "hostId": {
+          ".write": "auth != null && !data.exists() && newData.isString() && newData.val() === auth.uid"
+        },
+        "timer": {
+          ".read": true,
+          ".write": "auth != null && auth.uid === root.child('rooms/' + $roomId + '/hostId').val()",
+          "duration": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 86400" },
+          "startedAt": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+          "running": { ".validate": "newData.isBoolean()" }
+        },
+        "players": {
+          "$uid": {
+            ".read": true,
+            ".write": "auth != null && !data.exists() && newData.child('authUid').val() === auth.uid",
+            "authUid": {
+              ".write": "auth != null && ( (!data.exists() && newData.val() === auth.uid) || (data.exists() && data.val() === auth.uid && newData.val() === auth.uid) )",
+              ".validate": "newData.isString()"
+            },
+            "name": {
+              ".write": "auth != null && root.child('rooms/' + $roomId + '/players/' + $uid + '/authUid').val() === auth.uid",
+              ".validate": "newData.isString() && newData.val().length <= 24"
+            },
+            "color": {
+              ".write": "auth != null && root.child('rooms/' + $roomId + '/players/' + $uid + '/authUid').val() === auth.uid",
+              ".validate": "newData.isString()"
+            },
+            "icon": {
+              ".write": "auth != null && root.child('rooms/' + $roomId + '/players/' + $uid + '/authUid').val() === auth.uid",
+              ".validate": "newData.isString() && newData.val().length <= 6"
+            },
+            "score": {
+              ".write": "auth != null && auth.uid === root.child('rooms/' + $roomId + '/hostId').val()",
+              ".validate": "newData.isNumber()"
+            },
+            "$other": { ".validate": false }
+          }
+        },
+        "$other": { ".write": false }
+      }
+    }
+  }
+}
+```

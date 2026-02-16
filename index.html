@@ -23,7 +23,7 @@
         <h1 class="h1">ルーム</h1>
         <div class="stack">
           <button id="createRoomBtn" class="btn btn--primary">ルームを作成（ホスト）</button>
-          <button id="joinRoomBtn" class="btn">ルームに参加（overlay表示）</button>
+          <button id="openJoinModalBtn" class="btn">ルームに参加（overlay表示）</button>
         </div>
         <p class="muted">
           参加者は事前に <span class="mono">config.html</span> でレイアウトを作っておき、当日は overlay の
@@ -31,13 +31,26 @@
         </p>
       </section>
 
-      <section class="card">
-        <h2 class="h2">現在のユーザーID（localStorage）</h2>
-        <div class="row row--wrap">
-          <code id="userIdView" class="mono pill"></code>
-          <button id="copyUserIdBtn" class="btn btn--small">コピー</button>
+      <section id="joinModal" class="modal hidden" aria-hidden="true">
+        <div class="modal__backdrop" data-close="1"></div>
+        <div class="modal__panel" role="dialog" aria-modal="true" aria-labelledby="joinTitle">
+          <div class="row row--between">
+            <h2 id="joinTitle" class="h2" style="margin: 0">ルームに参加</h2>
+            <button class="btn btn--small" id="closeJoinModalBtn" type="button">閉じる</button>
+          </div>
+          <div class="field" style="margin-top: 10px">
+            <label class="label" for="joinRoomIdInput">ルームID（6桁）</label>
+            <div class="inputRow">
+              <input id="joinRoomIdInput" class="input mono" type="text" inputmode="numeric" maxlength="6" placeholder="例: 123456" />
+              <button id="pasteJoinRoomIdBtn" class="btn btn--small" type="button">ペースト</button>
+            </div>
+            <div class="hint muted">テスト表示は <span class="mono">test</span> を入力してください。</div>
+          </div>
+          <div class="row" style="margin-top: 12px">
+            <button id="joinGoBtn" class="btn btn--primary" type="button">overlayを開く</button>
+            <button class="btn" type="button" data-close="1">キャンセル</button>
+          </div>
         </div>
-        <p class="muted">このIDが Firebase の <span class="mono">players/{uid}</span> に対応します（ログイン不要）。</p>
       </section>
 
       <footer class="footer muted">
@@ -47,6 +60,7 @@
 
     <!-- Firebase (compat) -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
     <script src="./firebaseConfig.js"></script>
     <script src="./app.js"></script>

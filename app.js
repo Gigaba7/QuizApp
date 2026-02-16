@@ -13,7 +13,7 @@
   const DEFAULT_PROFILE = {
     name: "サンプル名",
     color: "#7c5cff",
-    icon: "⭐",
+    iconImage: "",
   };
 
   function safeJsonParse(str, fallback) {
@@ -65,7 +65,7 @@
     const merged = { ...DEFAULT_PROFILE, ...(parsed || {}) };
     merged.name = (merged.name || "").toString().slice(0, 24) || DEFAULT_PROFILE.name;
     merged.color = (merged.color || "").toString() || DEFAULT_PROFILE.color;
-    merged.icon = (merged.icon || "").toString().slice(0, 6) || DEFAULT_PROFILE.icon;
+    merged.iconImage = (merged.iconImage || "").toString();
     return merged;
   }
 
@@ -119,7 +119,26 @@
   function initFirebaseOnce() {
     if (!isFirebaseConfigReady()) return null;
     if (!firebase?.apps?.length) firebase.initializeApp(window.FIREBASE_CONFIG);
-    return firebase.database();
+    return {
+      db: firebase.database(),
+      auth: firebase.auth(),
+    };
+  }
+
+  async function ensureAuthed() {
+    const fb = initFirebaseOnce();
+    if (!fb) return null;
+    const { auth } = fb;
+    if (auth.currentUser?.uid) return auth.currentUser;
+    try {
+      await auth.signInAnonymously();
+      return auth.currentUser;
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error(e);
+      alert("Firebase Authentication（匿名）を有効化してください。Console → Authentication → Sign-in method → Anonymous");
+      return null;
+    }
   }
 
   function applyOverlayLayout(itemEl, part) {
@@ -143,6 +162,19 @@
     const box = itemEl.querySelector(".overlayBox");
     if (!box) return;
     box.style.borderColor = color;
+  }
+
+  function setOverlayBackgroundImage(itemEl, dataUrl) {
+    if (!itemEl) return;
+    const box = itemEl.querySelector(".overlayBox");
+    if (!box) return;
+    const url = (dataUrl || "").toString();
+    if (!url) {
+      box.style.backgroundImage = "";
+      return;
+    }
+    // Readability overlay + image
+    box.style.backgroundImage = `linear-gradient(180deg, rgba(0,0,0,0.55), rgba(0,0,0,0.35)), url("${url}")`;
   }
 
   function copyToClipboard(text) {
@@ -170,28 +202,85 @@
     return Promise.resolve(ok);
   }
 
+  async function readClipboardText() {
+    if (!navigator.clipboard?.readText) throw new Error("Clipboard readText not available");
+    return await navigator.clipboard.readText();
+  }
+
+  function dispatchInput(el) {
+    if (!el) return;
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+    el.dispatchEvent(new Event("change", { bubbles: true }));
+  }
+
   async function initHome() {
-    const userId = getOrCreateUserId();
-    setText(qs("#userIdView"), userId);
-
-    qs("#copyUserIdBtn")?.addEventListener("click", async () => {
-      await copyToClipboard(userId);
-    });
-
     qs("#createRoomBtn")?.addEventListener("click", async () => {
-      const db = initFirebaseOnce();
-      if (!db) {
+      const fb = initFirebaseOnce();
+      if (!fb) {
         alert("Firebase設定が未入力です。firebaseConfig.js を設定してください。");
         return;
       }
-      const roomId = await createRoom(db, userId);
+      const authed = await ensureAuthed();
+      if (!authed) return;
+      const roomId = await createRoom(fb.db, authed.uid);
       location.href = `./room.html?room=${encodeURIComponent(roomId)}`;
     });
 
-    qs("#joinRoomBtn")?.addEventListener("click", () => {
-      const roomId = prompt("ルームID（6桁数字）を入力してください。\nテストは 'test' でもOK。", "");
-      if (!roomId) return;
-      location.href = `./overlay.html?room=${encodeURIComponent(roomId.trim())}`;
+    const modal = qs("#joinModal");
+    const openBtn = qs("#openJoinModalBtn");
+    const closeBtn = qs("#closeJoinModalBtn");
+    const input = qs("#joinRoomIdInput");
+    const goBtn = qs("#joinGoBtn");
+    const pasteBtn = qs("#pasteJoinRoomIdBtn");
+
+    const close = () => {
+      modal?.classList.add("hidden");
+      modal?.setAttribute("aria-hidden", "true");
+    };
+    const open = () => {
+      modal?.classList.remove("hidden");
+      modal?.setAttribute("aria-hidden", "false");
+      setTimeout(() => input?.focus(), 0);
+    };
+
+    openBtn?.addEventListener("click", open);
+    closeBtn?.addEventListener("click", close);
+    modal?.addEventListener("click", (e) => {
+      const t = e.target;
+      if (t?.dataset?.close) close();
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && !(modal?.classList.contains("hidden"))) close();
+    });
+
+    const nav = () => {
+      const roomId = (input?.value || "").trim() || "test";
+      if (roomId !== "test" && !/^\d{6}$/.test(roomId)) {
+        alert("ルームIDは6桁の数字、または test を入力してください。");
+        return;
+      }
+      location.href = `./overlay.html?room=${encodeURIComponent(roomId)}`;
+    };
+    goBtn?.addEventListener("click", nav);
+    input?.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") nav();
+    });
+
+    pasteBtn?.addEventListener("click", async () => {
+      try {
+        const t = (await readClipboardText()).trim();
+        if (!t) return;
+        // accept "test" or digits
+        if (t.toLowerCase() === "test") {
+          input.value = "test";
+        } else {
+          const digits = t.replace(/\D/g, "").slice(0, 6);
+          input.value = digits;
+        }
+        dispatchInput(input);
+      } catch {
+        alert("クリップボードの読み取りに失敗しました。ブラウザ設定/HTTPS/localhost を確認し、手動で貼り付けてください。");
+      }
     });
   }
 
@@ -250,17 +339,20 @@
       if (a) a.href = `./overlay.html?room=${encodeURIComponent(roomId)}`;
     }
 
-    const userId = getOrCreateUserId();
-    const db = initFirebaseOnce();
-    if (!db) {
+    const userId = getOrCreateUserId(); // local UUID (players/{uid})
+    const fb = initFirebaseOnce();
+    if (!fb) {
       alert("Firebase設定が未入力です。firebaseConfig.js を設定してください。");
       return;
     }
 
-    const roomRef = db.ref(`rooms/${roomId}`);
+    const authed = await ensureAuthed();
+    if (!authed) return;
+
+    const roomRef = fb.db.ref(`rooms/${roomId}`);
     const hostIdSnap = await roomRef.child("hostId").once("value");
     const hostId = hostIdSnap.val();
-    const isHost = hostId === userId;
+    const isHost = hostId === authed.uid;
     const warning = qs("#hostWarning");
     warning?.classList.toggle("hidden", isHost);
 
@@ -292,7 +384,13 @@
 
           const icon = document.createElement("div");
           icon.className = "playerIcon";
-          icon.textContent = p?.icon || "👤";
+          icon.textContent = "";
+          if (p?.iconImage) {
+            icon.style.backgroundImage = `url("${p.iconImage}")`;
+          } else {
+            icon.style.backgroundImage = "";
+            icon.textContent = " ";
+          }
           if (p?.color) icon.style.borderColor = p.color;
 
           const text = document.createElement("div");
@@ -399,17 +497,13 @@
     let layout = loadLayout(userId);
     let profile = loadProfile(userId);
 
-    setText(qs("#userIdView"), userId);
-    qs("#copyUserIdBtn")?.addEventListener("click", async () => {
-      await copyToClipboard(userId);
-    });
-
     const nameEl = qs("#displayName");
     const colorEl = qs("#displayColor");
-    const iconEl = qs("#displayIcon");
     if (nameEl) nameEl.value = profile.name;
     if (colorEl) colorEl.value = profile.color;
-    if (iconEl) iconEl.value = profile.icon;
+    const iconFileEl = qs("#displayIconFile");
+    const clearIconBtn = qs("#clearIconBtn");
+    const pasteNameBtn = qs("#pasteDisplayNameBtn");
 
     // Visible radios
     const setRadio = (name, value) => {
@@ -434,7 +528,6 @@
     const previewTimer = qs("#previewTimer");
     const previewPoint = qs("#previewPoint");
     const previewName = qs("#previewName");
-    const previewIcon = qs("#previewIcon");
     const previewScore = qs("#previewScore");
     if (previewScore) previewScore.textContent = "100pt";
 
@@ -487,9 +580,9 @@
       applyOverlayLayout(previewTimer, layout.timer);
       applyOverlayLayout(previewPoint, layout.point);
       if (previewName) previewName.textContent = profile.name || DEFAULT_PROFILE.name;
-      if (previewIcon) previewIcon.textContent = profile.icon || DEFAULT_PROFILE.icon;
       setOverlayAccent(previewPoint, profile.color || DEFAULT_PROFILE.color);
       setOverlayAccent(previewTimer, profile.color || DEFAULT_PROFILE.color);
+      setOverlayBackgroundImage(previewPoint, profile.iconImage || "");
       disableConflictingSideOptions();
       if (timerScaleView) timerScaleView.textContent = `scale: ${Number(layout.timer.scale).toFixed(1)}`;
       if (pointScaleView) pointScaleView.textContent = `scale: ${Number(layout.point.scale).toFixed(1)}`;
@@ -538,13 +631,33 @@
       profile = {
         name: (nameEl?.value || "").toString().slice(0, 24) || DEFAULT_PROFILE.name,
         color: (colorEl?.value || "").toString() || DEFAULT_PROFILE.color,
-        icon: (iconEl?.value || "").toString().slice(0, 6) || DEFAULT_PROFILE.icon,
+        iconImage: (profile.iconImage || "").toString(),
       };
       renderPreview();
     };
     nameEl?.addEventListener("input", onProfileInput);
     colorEl?.addEventListener("input", onProfileInput);
-    iconEl?.addEventListener("input", onProfileInput);
+
+    iconFileEl?.addEventListener("change", () => {
+      const f = iconFileEl.files?.[0];
+      if (!f) return;
+      if (!f.type.startsWith("image/")) {
+        alert("画像ファイルを選択してください。");
+        iconFileEl.value = "";
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        profile.iconImage = String(reader.result || "");
+        renderPreview();
+      };
+      reader.readAsDataURL(f);
+    });
+    clearIconBtn?.addEventListener("click", () => {
+      profile.iconImage = "";
+      if (iconFileEl) iconFileEl.value = "";
+      renderPreview();
+    });
 
     qs("#saveBtn")?.addEventListener("click", () => {
       const ok = layout.timer.side !== layout.point.side;
@@ -570,6 +683,7 @@
 
     const roomIdForLinkEl = qs("#roomIdForLink");
     const overlayUrlEl = qs("#overlayUrl");
+    const pasteRoomBtn = qs("#pasteRoomIdForLinkBtn");
     const updateOverlayUrl = () => {
       const raw = (roomIdForLinkEl?.value || "test").trim() || "test";
       const url = buildOverlayUrl(raw);
@@ -577,6 +691,35 @@
     };
     roomIdForLinkEl?.addEventListener("input", updateOverlayUrl);
     updateOverlayUrl();
+
+    pasteNameBtn?.addEventListener("click", async () => {
+      try {
+        const t = (await readClipboardText()).trim();
+        if (!t) return;
+        if (nameEl) {
+          nameEl.value = t.slice(0, 24);
+          dispatchInput(nameEl);
+        }
+      } catch {
+        alert("クリップボードの読み取りに失敗しました。ブラウザ設定/HTTPS/localhost を確認し、手動で貼り付けてください。");
+      }
+    });
+
+    pasteRoomBtn?.addEventListener("click", async () => {
+      try {
+        const t = (await readClipboardText()).trim();
+        if (!t) return;
+        if (!roomIdForLinkEl) return;
+        if (t.toLowerCase() === "test") {
+          roomIdForLinkEl.value = "test";
+        } else {
+          roomIdForLinkEl.value = t.replace(/\D/g, "").slice(0, 6);
+        }
+        dispatchInput(roomIdForLinkEl);
+      } catch {
+        alert("クリップボードの読み取りに失敗しました。ブラウザ設定/HTTPS/localhost を確認し、手動で貼り付けてください。");
+      }
+    });
 
     qs("#copyOverlayLinkBtn")?.addEventListener("click", async () => {
       const url = overlayUrlEl?.value || buildOverlayUrl("test");
@@ -595,7 +738,6 @@
     const timerEl = qs("#ovTimer");
     const timerValEl = qs("#ovTimerValue");
     const pointEl = qs("#ovPoint");
-    const iconEl = qs("#ovIcon");
     const nameEl = qs("#ovName");
     const scoreEl = qs("#ovScore");
 
@@ -603,47 +745,52 @@
     applyOverlayLayout(pointEl, layout.point);
     setOverlayAccent(timerEl, profile.color);
     setOverlayAccent(pointEl, profile.color);
+    setOverlayBackgroundImage(pointEl, profile.iconImage || "");
 
-    if (iconEl) iconEl.textContent = profile.icon || DEFAULT_PROFILE.icon;
     if (nameEl) nameEl.textContent = profile.name || DEFAULT_PROFILE.name;
 
     let timerState = { duration: 300, startedAt: 0, running: false };
-    let playerState = { name: profile.name, score: 100, color: profile.color, icon: profile.icon };
+    let playerState = { name: profile.name, score: 100, color: profile.color, iconImage: profile.iconImage };
 
     const isTest = !roomId || roomId === "test";
 
     if (!isTest) {
-      const db = initFirebaseOnce();
-      if (db) {
-        const roomRef = db.ref(`rooms/${roomId}`);
-        const timerRef = roomRef.child("timer");
-        const playerRef = roomRef.child(`players/${userId}`);
+      const fb = initFirebaseOnce();
+      if (fb) {
+        ensureAuthed().then((authed) => {
+          if (!authed) return;
+          const roomRef = fb.db.ref(`rooms/${roomId}`);
+          const timerRef = roomRef.child("timer");
+          const playerRef = roomRef.child(`players/${userId}`);
 
-        timerRef.on("value", (snap) => {
-          timerState = snap.val() || timerState;
-        });
+          timerRef.on("value", (snap) => {
+            timerState = snap.val() || timerState;
+          });
 
-        playerRef.on("value", (snap) => {
-          const v = snap.val();
-          if (!v) return;
-          playerState = v;
-        });
+          playerRef.on("value", (snap) => {
+            const v = snap.val();
+            if (!v) return;
+            playerState = v;
+          });
 
-        // upsert player identity (scoreは上書きしない)
-        playerRef.once("value").then((snap) => {
-          if (!snap.exists()) {
-            playerRef.set({
+          // upsert player identity (scoreは上書きしない)
+          playerRef.once("value").then((snap) => {
+            if (!snap.exists()) {
+              playerRef.set({
+                authUid: authed.uid,
+                name: profile.name,
+                score: 0,
+                color: profile.color,
+                iconImage: profile.iconImage || "",
+              });
+              return;
+            }
+            playerRef.update({
+              authUid: authed.uid,
               name: profile.name,
-              score: 0,
               color: profile.color,
-              icon: profile.icon,
+              iconImage: profile.iconImage || "",
             });
-            return;
-          }
-          playerRef.update({
-            name: profile.name,
-            color: profile.color,
-            icon: profile.icon,
           });
         });
       } else {
@@ -658,14 +805,14 @@
 
       const score = Number(playerState?.score || 0);
       const pname = playerState?.name || profile.name || DEFAULT_PROFILE.name;
-      const picon = playerState?.icon || profile.icon || DEFAULT_PROFILE.icon;
       const pcolor = playerState?.color || profile.color || DEFAULT_PROFILE.color;
+      const pimg = (playerState?.iconImage || profile.iconImage || "").toString();
 
       if (nameEl) nameEl.textContent = pname;
-      if (iconEl) iconEl.textContent = picon;
       if (scoreEl) scoreEl.textContent = `${score}pt`;
       setOverlayAccent(pointEl, pcolor);
       setOverlayAccent(timerEl, pcolor);
+      setOverlayBackgroundImage(pointEl, pimg);
 
       requestAnimationFrame(tick);
     };

@@ -21,24 +21,25 @@
 
       <section class="card">
         <h1 class="h1">ユーザー</h1>
-        <div class="row row--wrap">
-          <div class="muted">userId:</div>
-          <code id="userIdView" class="mono pill"></code>
-          <button id="copyUserIdBtn" class="btn btn--small">コピー</button>
-        </div>
-
         <div class="grid grid--3">
           <div class="field">
             <label class="label" for="displayName">表示名</label>
-            <input id="displayName" class="input" type="text" maxlength="24" placeholder="例: Player 1" />
+            <div class="inputRow">
+              <input id="displayName" class="input" type="text" maxlength="24" placeholder="例: Player 1" />
+              <button id="pasteDisplayNameBtn" class="btn btn--small" type="button">ペースト</button>
+            </div>
           </div>
           <div class="field">
             <label class="label" for="displayColor">表示カラー</label>
             <input id="displayColor" class="input input--color" type="color" />
           </div>
           <div class="field">
-            <label class="label" for="displayIcon">アイコン（絵文字/短文字）</label>
-            <input id="displayIcon" class="input" type="text" maxlength="6" placeholder="例: ⭐" />
+            <label class="label" for="displayIconFile">アイコン画像（背景に使用）</label>
+            <input id="displayIconFile" class="input" type="file" accept="image/*" />
+            <div class="row row--wrap">
+              <button id="clearIconBtn" class="btn btn--small" type="button">画像を削除</button>
+              <span class="muted hint">PNG/JPG/WebP推奨</span>
+            </div>
           </div>
         </div>
         <div class="hint muted">この情報は overlay がルームに接続したタイミングで Firebase の players に反映します。</div>
@@ -118,7 +119,10 @@
         <div class="grid grid--3">
           <div class="field">
             <label class="label" for="roomIdForLink">roomId（当日入力）</label>
-            <input id="roomIdForLink" class="input" type="text" inputmode="numeric" maxlength="6" placeholder="例: 123456 / test" />
+            <div class="inputRow">
+              <input id="roomIdForLink" class="input" type="text" inputmode="numeric" maxlength="6" placeholder="例: 123456 / test" />
+              <button id="pasteRoomIdForLinkBtn" class="btn btn--small" type="button">ペースト</button>
+            </div>
           </div>
           <div class="field">
             <label class="label" for="overlayUrl">overlay URL</label>
@@ -146,7 +150,6 @@
             <div class="overlayBox">
               <div class="overlayLabel">POINT</div>
               <div class="overlayValue">
-                <span class="overlayIcon" id="previewIcon">⭐</span>
                 <span class="overlayName" id="previewName">サンプル名</span>
                 <span class="overlayScore mono" id="previewScore">100pt</span>
               </div>
@@ -155,13 +158,12 @@
         </div>
       </section>
 
-      <footer class="footer muted">
-        レイアウト保存キー: <span class="mono">layout_{userId}</span> / ユーザーID: <span class="mono">gigaba_overlay_user_id</span>
-      </footer>
+      <footer class="footer muted">事前にここで配置を決めておけば、当日は overlay の room を変えるだけで使えます。</footer>
     </main>
 
     <!-- Firebase (compat) ※config自体はFirebase不要。overlay/room用に同梱してもOK -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
     <script src="./firebaseConfig.js"></script>
     <script src="./app.js"></script>
