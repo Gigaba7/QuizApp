@@ -669,8 +669,13 @@
       playersListEl.innerHTML = "";
 
       entries
-        .sort((a, b) => String(a[1]?.name || "").localeCompare(String(b[1]?.name || "")))
-        .forEach(([uid, p]) => {
+        .sort((a, b) => {
+          const ao = Number(a[1]?.order ?? a[1]?.joinedAt ?? 0);
+          const bo = Number(b[1]?.order ?? b[1]?.joinedAt ?? 0);
+          if (ao !== bo) return ao - bo;
+          return String(a[1]?.name || "").localeCompare(String(b[1]?.name || ""));
+        })
+        .forEach(([uid, p], idx, sorted) => {
           const row = document.createElement("div");
           row.className = "playerRow";
 
@@ -708,6 +713,42 @@
 
           const actions = document.createElement("div");
           actions.className = "playerActions";
+
+          const up = document.createElement("button");
+          up.className = "btn btnIconSmall";
+          up.textContent = "▲";
+          up.title = "上へ";
+          up.disabled = !isHost || idx === 0;
+          up.addEventListener("click", async () => {
+            if (!isHost) return;
+            const prevUid = sorted[idx - 1]?.[0];
+            if (!prevUid) return;
+            const curOrder = Number(players?.[uid]?.order ?? players?.[uid]?.joinedAt ?? nowMs());
+            const prevOrder = Number(players?.[prevUid]?.order ?? players?.[prevUid]?.joinedAt ?? nowMs() - 1);
+            const updates = {};
+            updates[`players/${uid}/order`] = prevOrder;
+            updates[`players/${prevUid}/order`] = curOrder;
+            await roomRef.update(updates);
+            await roomRef.child("lastActiveAt").set(serverTimestamp());
+          });
+
+          const down = document.createElement("button");
+          down.className = "btn btnIconSmall";
+          down.textContent = "▼";
+          down.title = "下へ";
+          down.disabled = !isHost || idx === sorted.length - 1;
+          down.addEventListener("click", async () => {
+            if (!isHost) return;
+            const nextUid = sorted[idx + 1]?.[0];
+            if (!nextUid) return;
+            const curOrder = Number(players?.[uid]?.order ?? players?.[uid]?.joinedAt ?? nowMs());
+            const nextOrder = Number(players?.[nextUid]?.order ?? players?.[nextUid]?.joinedAt ?? nowMs() + 1);
+            const updates = {};
+            updates[`players/${uid}/order`] = nextOrder;
+            updates[`players/${nextUid}/order`] = curOrder;
+            await roomRef.update(updates);
+            await roomRef.child("lastActiveAt").set(serverTimestamp());
+          });
 
           const delta = document.createElement("input");
           delta.className = "input mono deltaInput";
@@ -755,6 +796,8 @@
             await roomRef.child("lastActiveAt").set(serverTimestamp());
           });
 
+          actions.appendChild(up);
+          actions.appendChild(down);
           actions.appendChild(minus);
           actions.appendChild(delta);
           actions.appendChild(plus);
@@ -852,7 +895,12 @@
     function renderPlayers(players) {
       if (!playersEl) return;
       const entries = Object.entries(players || {});
-      entries.sort((a, b) => String(a[1]?.name || "").localeCompare(String(b[1]?.name || "")));
+      entries.sort((a, b) => {
+        const ao = Number(a[1]?.order ?? a[1]?.joinedAt ?? 0);
+        const bo = Number(b[1]?.order ?? b[1]?.joinedAt ?? 0);
+        if (ao !== bo) return ao - bo;
+        return String(a[1]?.name || "").localeCompare(String(b[1]?.name || ""));
+      });
       playersEl.innerHTML = "";
 
       const fitRowFont = (cardEl, rowEl, scoreEl) => {
@@ -1232,6 +1280,8 @@
                 score: 0,
                 color: profile.color,
                 iconImage: profile.iconImage || "",
+                joinedAt: serverTimestamp(),
+                order: serverTimestamp(),
               });
               // remove player entry on disconnect (requires rules allowing self delete)
               playerRef.onDisconnect().remove();

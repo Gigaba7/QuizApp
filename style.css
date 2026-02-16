@@ -395,6 +395,14 @@ body {
   align-items: center;
 }
 
+.btnIconSmall {
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  font-size: 16px;
+  padding: 0;
+}
+
 .deltaInput {
   width: 84px;
   height: 40px;
