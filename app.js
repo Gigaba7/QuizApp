@@ -504,7 +504,215 @@
   }
 
   function initConfig() {
-    // config.html is deprecated. Do nothing.
+    const userId = getOrCreateUserId();
+    let layout = loadLayout(userId);
+    let profile = loadProfile(userId);
+
+    const nameEl = qs("#cfgDisplayName");
+    const colorEl = qs("#cfgColor");
+    const imgEl = qs("#cfgImage");
+    const clearImgBtn = qs("#cfgClearImageBtn");
+    const pasteNameBtn = qs("#cfgPasteNameBtn");
+
+    const timerScaleEl = qs("#cfgTimerScale");
+    const pointScaleEl = qs("#cfgPointScale");
+
+    const saveBtn = qs("#cfgSaveBtn");
+    const resetBtn = qs("#cfgResetBtn");
+    const saveStatus = qs("#cfgSaveStatus");
+    const sideError = qs("#cfgSideError");
+
+    const testCountEl = qs("#cfgTestUserCount");
+
+    const roomIdEl = qs("#cfgRoomId");
+    const pasteRoomBtn = qs("#cfgPasteRoomBtn");
+    const overlayUrlEl = qs("#cfgOverlayUrl");
+    const copyOverlayBtn = qs("#cfgCopyOverlayBtn");
+
+    const setRadio = (name, value) => {
+      const el = qs(`input[name="${name}"][value="${value}"]`);
+      if (el) el.checked = true;
+    };
+
+    // init UI values
+    if (nameEl) nameEl.value = profile.name || DEFAULT_PROFILE.name;
+    if (colorEl) colorEl.value = profile.color || DEFAULT_PROFILE.color;
+    if (timerScaleEl) timerScaleEl.value = String(layout.timer.scale);
+    if (pointScaleEl) pointScaleEl.value = String(layout.point.scale);
+
+    setRadio("cfgTimerVisible", layout.timer.visible ? "on" : "off");
+    setRadio("cfgPointVisible", layout.point.visible ? "on" : "off");
+    setRadio("cfgTimerSide", layout.timer.side);
+    setRadio("cfgPointSide", layout.point.side);
+
+    // test user count
+    let testUserCount = Number(localStorage.getItem("test_user_count") || "3") || 3;
+    testUserCount = clamp(testUserCount, 1, 12);
+    if (testCountEl) testCountEl.value = String(testUserCount);
+
+    function enforceSideConstraint(changed) {
+      const conflict = layout.timer.side === layout.point.side;
+      sideError?.classList.toggle("hidden", !conflict);
+      if (!conflict) return true;
+
+      // revert changed to a safe alternative
+      const all = ["top", "bottom", "left", "right"];
+      if (changed === "timer") {
+        const alt = all.find((s) => s !== layout.point.side) || "top";
+        layout.timer.side = alt;
+        setRadio("cfgTimerSide", layout.timer.side);
+      } else if (changed === "point") {
+        const alt = all.find((s) => s !== layout.timer.side) || "right";
+        layout.point.side = alt;
+        setRadio("cfgPointSide", layout.point.side);
+      }
+      sideError?.classList.remove("hidden");
+      return false;
+    }
+
+    function disableConflictingSideOptions() {
+      const t = layout.timer.side;
+      const p = layout.point.side;
+      qsa('input[name="cfgTimerSide"]').forEach((el) => {
+        el.disabled = el.value === p && !el.checked;
+      });
+      qsa('input[name="cfgPointSide"]').forEach((el) => {
+        el.disabled = el.value === t && !el.checked;
+      });
+    }
+
+    function updateOverlayUrl() {
+      const raw = (roomIdEl?.value || "").trim();
+      const room = raw || "test";
+      if (overlayUrlEl) overlayUrlEl.value = buildOverlayUrl(room);
+    }
+
+    function setSaved(msg) {
+      if (!saveStatus) return;
+      saveStatus.textContent = msg;
+      setTimeout(() => {
+        if (saveStatus.textContent === msg) saveStatus.textContent = "";
+      }, 900);
+    }
+
+    function saveAll() {
+      saveLayout(userId, layout);
+      saveProfile(userId, profile);
+      disableConflictingSideOptions();
+      setSaved("保存しました");
+    }
+
+    // Handlers
+    nameEl?.addEventListener("input", () => {
+      profile.name = (nameEl.value || "").toString().slice(0, 24) || DEFAULT_PROFILE.name;
+    });
+    colorEl?.addEventListener("input", () => {
+      profile.color = (colorEl.value || "").toString() || DEFAULT_PROFILE.color;
+    });
+
+    pasteNameBtn?.addEventListener("click", async () => {
+      try {
+        const t = (await readClipboardText()).trim();
+        if (!t) return;
+        if (nameEl) nameEl.value = t.slice(0, 24);
+        dispatchInput(nameEl);
+      } catch {
+        alert("クリップボードの読み取りに失敗しました。ブラウザ設定/HTTPS/localhost を確認し、手動で貼り付けてください。");
+      }
+    });
+
+    imgEl?.addEventListener("change", () => {
+      const f = imgEl.files?.[0];
+      if (!f) return;
+      if (!f.type.startsWith("image/")) {
+        alert("画像ファイルを選択してください。");
+        imgEl.value = "";
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        profile.iconImage = String(reader.result || "");
+      };
+      reader.readAsDataURL(f);
+    });
+    clearImgBtn?.addEventListener("click", () => {
+      profile.iconImage = "";
+      if (imgEl) imgEl.value = "";
+    });
+
+    qsa('input[name="cfgTimerVisible"]').forEach((el) =>
+      el.addEventListener("change", () => {
+        layout.timer.visible = el.value === "on";
+      }),
+    );
+    qsa('input[name="cfgPointVisible"]').forEach((el) =>
+      el.addEventListener("change", () => {
+        layout.point.visible = el.value === "on";
+      }),
+    );
+    qsa('input[name="cfgTimerSide"]').forEach((el) =>
+      el.addEventListener("change", () => {
+        if (!el.checked) return;
+        layout.timer.side = el.value;
+        enforceSideConstraint("timer");
+        disableConflictingSideOptions();
+      }),
+    );
+    qsa('input[name="cfgPointSide"]').forEach((el) =>
+      el.addEventListener("change", () => {
+        if (!el.checked) return;
+        layout.point.side = el.value;
+        enforceSideConstraint("point");
+        disableConflictingSideOptions();
+      }),
+    );
+
+    timerScaleEl?.addEventListener("input", () => {
+      layout.timer.scale = clamp(Number(timerScaleEl.value), 0.5, 2.0);
+    });
+    pointScaleEl?.addEventListener("input", () => {
+      layout.point.scale = clamp(Number(pointScaleEl.value), 0.5, 2.0);
+    });
+
+    testCountEl?.addEventListener("input", () => {
+      testUserCount = clamp(Number(testCountEl.value || 1), 1, 12);
+      localStorage.setItem("test_user_count", String(testUserCount));
+    });
+
+    saveBtn?.addEventListener("click", () => {
+      const ok = layout.timer.side !== layout.point.side;
+      sideError?.classList.toggle("hidden", ok);
+      if (!ok) return;
+      saveAll();
+    });
+
+    resetBtn?.addEventListener("click", () => {
+      localStorage.removeItem(layoutKey(userId));
+      localStorage.removeItem(profileKey(userId));
+      location.reload();
+    });
+
+    roomIdEl?.addEventListener("input", updateOverlayUrl);
+    updateOverlayUrl();
+
+    pasteRoomBtn?.addEventListener("click", async () => {
+      try {
+        const t = (await readClipboardText()).trim();
+        if (!t) return;
+        if (!roomIdEl) return;
+        roomIdEl.value = t.toLowerCase() === "test" ? "test" : t.replace(/\D/g, "").slice(0, 6);
+        dispatchInput(roomIdEl);
+      } catch {
+        alert("クリップボードの読み取りに失敗しました。ブラウザ設定/HTTPS/localhost を確認し、手動で貼り付けてください。");
+      }
+    });
+
+    copyOverlayBtn?.addEventListener("click", async () => {
+      const url = overlayUrlEl?.value || buildOverlayUrl("test");
+      await copyToClipboard(url);
+    });
+
+    disableConflictingSideOptions();
   }
 
   function initOverlay() {
@@ -534,43 +742,8 @@
 
     const isTest = !roomId || roomId === "test";
 
-    // Test panel (compact settings) - only in test mode
-    const testPanel = qs("#testPanel");
-    const testFab = qs("#testPanelOpenBtn");
-    const testClose = qs("#testPanelCloseBtn");
-    const tpSideError = qs("#tpSideError");
-    const tpName = qs("#tpDisplayName");
-    const tpColor = qs("#tpColor");
-    const tpImg = qs("#tpImage");
-    const tpClearImg = qs("#tpClearImageBtn");
-    const tpPasteName = qs("#tpPasteNameBtn");
-    const tpRoomPaste = qs("#tpRoomPaste");
-    const tpPasteRoom = qs("#tpPasteRoomBtn");
-    const tpUserCount = qs("#tpUserCount");
-    const tpTimerScale = qs("#tpTimerScale");
-    const tpPointScale = qs("#tpPointScale");
-
-    const setRadio = (name, value) => {
-      const el = qs(`input[name="${name}"][value="${value}"]`);
-      if (el) el.checked = true;
-    };
-
     let testUserCount = Number(localStorage.getItem("test_user_count") || "3") || 3;
     testUserCount = clamp(testUserCount, 1, 12);
-
-    function enforceSideConstraint(changed) {
-      const conflict = layout.timer.side === layout.point.side;
-      tpSideError?.classList.toggle("hidden", !conflict);
-      if (!conflict) return true;
-      // revert to safe defaults
-      if (changed === "timer") layout.timer.side = "top";
-      if (changed === "point") layout.point.side = "right";
-      if (layout.timer.side === layout.point.side) layout.point.side = "right";
-      setRadio("tpTimerSide", layout.timer.side);
-      setRadio("tpPointSide", layout.point.side);
-      tpSideError?.classList.remove("hidden");
-      return false;
-    }
 
     function renderPointList(count) {
       if (!pointListEl) return;
@@ -600,130 +773,6 @@
         pointListEl?.classList.add("hidden");
         pointSingleEl?.classList.remove("hidden");
       }
-    }
-
-    if (isTest) {
-      testFab?.classList.remove("hidden");
-      testFab?.addEventListener("click", () => {
-        testPanel?.classList.toggle("hidden");
-      });
-      testClose?.addEventListener("click", () => testPanel?.classList.add("hidden"));
-
-      // init values
-      if (tpName) tpName.value = profile.name || "";
-      if (tpColor) tpColor.value = profile.color || DEFAULT_PROFILE.color;
-      if (tpUserCount) tpUserCount.value = String(testUserCount);
-      if (tpTimerScale) tpTimerScale.value = String(layout.timer.scale);
-      if (tpPointScale) tpPointScale.value = String(layout.point.scale);
-
-      setRadio("tpTimerVisible", layout.timer.visible ? "on" : "off");
-      setRadio("tpPointVisible", layout.point.visible ? "on" : "off");
-      setRadio("tpTimerSide", layout.timer.side);
-      setRadio("tpPointSide", layout.point.side);
-
-      // handlers (auto save)
-      tpName?.addEventListener("input", () => {
-        profile.name = tpName.value.slice(0, 24) || DEFAULT_PROFILE.name;
-        saveProfile(userId, profile);
-        applyAll();
-      });
-      tpColor?.addEventListener("input", () => {
-        profile.color = tpColor.value || DEFAULT_PROFILE.color;
-        saveProfile(userId, profile);
-        applyAll();
-      });
-      tpTimerScale?.addEventListener("input", () => {
-        layout.timer.scale = clamp(Number(tpTimerScale.value), 0.5, 2.0);
-        saveLayout(userId, layout);
-        applyAll();
-      });
-      tpPointScale?.addEventListener("input", () => {
-        layout.point.scale = clamp(Number(tpPointScale.value), 0.5, 2.0);
-        saveLayout(userId, layout);
-        applyAll();
-      });
-      tpUserCount?.addEventListener("input", () => {
-        testUserCount = clamp(Number(tpUserCount.value || 1), 1, 12);
-        localStorage.setItem("test_user_count", String(testUserCount));
-        applyAll();
-      });
-
-      qsa('input[name="tpTimerVisible"]').forEach((el) =>
-        el.addEventListener("change", () => {
-          layout.timer.visible = el.value === "on";
-          saveLayout(userId, layout);
-          applyAll();
-        }),
-      );
-      qsa('input[name="tpPointVisible"]').forEach((el) =>
-        el.addEventListener("change", () => {
-          layout.point.visible = el.value === "on";
-          saveLayout(userId, layout);
-          applyAll();
-        }),
-      );
-      qsa('input[name="tpTimerSide"]').forEach((el) =>
-        el.addEventListener("change", () => {
-          if (!el.checked) return;
-          layout.timer.side = el.value;
-          enforceSideConstraint("timer");
-          saveLayout(userId, layout);
-          applyAll();
-        }),
-      );
-      qsa('input[name="tpPointSide"]').forEach((el) =>
-        el.addEventListener("change", () => {
-          if (!el.checked) return;
-          layout.point.side = el.value;
-          enforceSideConstraint("point");
-          saveLayout(userId, layout);
-          applyAll();
-        }),
-      );
-
-      tpImg?.addEventListener("change", () => {
-        const f = tpImg.files?.[0];
-        if (!f) return;
-        if (!f.type.startsWith("image/")) {
-          alert("画像ファイルを選択してください。");
-          tpImg.value = "";
-          return;
-        }
-        const reader = new FileReader();
-        reader.onload = () => {
-          profile.iconImage = String(reader.result || "");
-          saveProfile(userId, profile);
-          applyAll();
-        };
-        reader.readAsDataURL(f);
-      });
-      tpClearImg?.addEventListener("click", () => {
-        profile.iconImage = "";
-        if (tpImg) tpImg.value = "";
-        saveProfile(userId, profile);
-        applyAll();
-      });
-
-      tpPasteName?.addEventListener("click", async () => {
-        try {
-          const t = (await readClipboardText()).trim();
-          if (!t) return;
-          if (tpName) tpName.value = t.slice(0, 24);
-          dispatchInput(tpName);
-        } catch {
-          alert("クリップボードの読み取りに失敗しました。ブラウザ設定/HTTPS/localhost を確認し、手動で貼り付けてください。");
-        }
-      });
-      tpPasteRoom?.addEventListener("click", async () => {
-        try {
-          const t = (await readClipboardText()).trim();
-          if (!t) return;
-          const v = t.toLowerCase() === "test" ? "test" : t.replace(/\D/g, "").slice(0, 6);
-          if (tpRoomPaste) tpRoomPaste.value = v;
-        } catch {
-          alert("クリップボードの読み取りに失敗しました。ブラウザ設定/HTTPS/localhost を確認し、手動で貼り付けてください。");
-        }
-      });
     }
 
     if (!isTest) {
@@ -797,6 +846,7 @@
       if (e.key !== layoutKey(userId) && e.key !== profileKey(userId)) return;
       layout = loadLayout(userId);
       profile = loadProfile(userId);
+      testUserCount = clamp(Number(localStorage.getItem("test_user_count") || "3") || 3, 1, 12);
       applyAll();
     });
 

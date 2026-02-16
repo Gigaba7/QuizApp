@@ -495,43 +495,7 @@ body {
   opacity: 0.95;
 }
 
-/* Overlay test panel (only in room=test) */
-.testFab {
-  position: fixed;
-  bottom: 18px;
-  right: 18px;
-  z-index: 60;
-  padding: 10px 12px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: rgba(0, 0, 0, 0.35);
-  color: var(--text);
-  cursor: pointer;
-  font-weight: 900;
-}
-
-.testPanel {
-  position: fixed;
-  right: 16px;
-  bottom: 70px;
-  z-index: 60;
-  width: min(420px, calc(100vw - 24px));
-  border-radius: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.62), rgba(0, 0, 0, 0.38));
-  backdrop-filter: blur(10px);
-  box-shadow: var(--shadow);
-  padding: 12px;
-}
-
-.testPanel__head {
-  margin-bottom: 10px;
-}
-
-.testPanel__body {
-  display: grid;
-  gap: 10px;
-}
+/* (removed) overlay test panel */
 
 /* Side anchors (stick to edge) */
 .side--top {
