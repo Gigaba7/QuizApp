@@ -146,6 +146,14 @@
     };
   }
 
+  function nowMs() {
+    return Date.now();
+  }
+
+  function serverTimestamp() {
+    return firebase?.database?.ServerValue?.TIMESTAMP || nowMs();
+  }
+
   async function ensureAuthed() {
     const fb = initFirebaseOnce();
     if (!fb) return null;
@@ -308,6 +316,46 @@
 
     // Display settings (moved here)
     initDisplaySettingsOnHome();
+
+    // Best-effort cleanup of stale rooms (runs once on home load; no per-second writes)
+    // If auth/config isn't ready, skip silently.
+    try {
+      const fb = initFirebaseOnce();
+      if (fb) {
+        const authed = await ensureAuthed();
+        if (authed) cleanupStaleRooms(fb.db);
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  async function cleanupStaleRooms(db) {
+    const roomsRef = db.ref("rooms");
+    const now = nowMs();
+    const hardTtl = 24 * 60 * 60 * 1000; // 24h
+    const emptyTtl = 6 * 60 * 60 * 1000; // 6h
+
+    // 1) Hard TTL delete by lastActiveAt
+    const cutoffHard = now - hardTtl;
+    const snapHard = await roomsRef.orderByChild("lastActiveAt").endAt(cutoffHard).limitToFirst(200).once("value");
+    const hard = snapHard.val() || {};
+    await Promise.all(
+      Object.entries(hard).map(([roomId]) => roomsRef.child(roomId).remove()),
+    );
+
+    // 2) Empty+inactive delete: older than emptyTtl AND no players AND timer not running
+    const cutoffEmpty = now - emptyTtl;
+    const snapMaybe = await roomsRef.orderByChild("lastActiveAt").endAt(cutoffEmpty).limitToFirst(200).once("value");
+    const maybe = snapMaybe.val() || {};
+    const deletions = [];
+    for (const [roomId, room] of Object.entries(maybe)) {
+      const players = room?.players || {};
+      const hasPlayers = Object.keys(players).length > 0;
+      const running = !!room?.timer?.running;
+      if (!hasPlayers && !running) deletions.push(roomsRef.child(roomId).remove());
+    }
+    await Promise.all(deletions);
   }
 
   function initDisplaySettingsOnHome() {
@@ -518,6 +566,8 @@
       await roomRef.set({
         hostId,
         flags: { hostPointVisible: true },
+        createdAt: serverTimestamp(),
+        lastActiveAt: serverTimestamp(),
         timer: { duration: 300, startedAt: 0, running: false },
         players: {},
       });
@@ -528,6 +578,8 @@
     await roomsRef.child(roomId).set({
       hostId,
       flags: { hostPointVisible: true },
+      createdAt: serverTimestamp(),
+      lastActiveAt: serverTimestamp(),
       timer: { duration: 300, startedAt: 0, running: false },
       players: {},
     });
@@ -574,6 +626,7 @@
     if (!authed) return;
 
     const roomRef = fb.db.ref(`rooms/${roomId}`);
+    roomRef.child("lastActiveAt").set(serverTimestamp());
     const hostIdSnap = await roomRef.child("hostId").once("value");
     const hostId = hostIdSnap.val();
     const isHost = hostId === authed.uid;
@@ -603,6 +656,7 @@
     hostPointVisibleToggle?.addEventListener("change", () => {
       if (!isHost) return;
       hostPointRef.set(!!hostPointVisibleToggle.checked);
+      roomRef.child("lastActiveAt").set(serverTimestamp());
     });
 
     const playersListEl = qs("#playersList");
@@ -672,6 +726,7 @@
             roomRef
               .child(`players/${uid}/score`)
               .transaction((cur) => (Number(cur || 0) || 0) + d);
+            roomRef.child("lastActiveAt").set(serverTimestamp());
           });
 
           const minus = document.createElement("button");
@@ -683,11 +738,27 @@
             roomRef
               .child(`players/${uid}/score`)
               .transaction((cur) => (Number(cur || 0) || 0) - d);
+            roomRef.child("lastActiveAt").set(serverTimestamp());
+          });
+
+          const del = document.createElement("button");
+          del.className = "btn btnIcon btn--danger";
+          del.textContent = "✕";
+          del.title = "プレイヤーを削除";
+          del.disabled = !isHost;
+          del.addEventListener("click", async () => {
+            if (!isHost) return;
+            const pname = String(p?.name || uid);
+            const ok = confirm(`プレイヤー「${pname}」を削除しますか？\n（overlayの表示からも消えます）`);
+            if (!ok) return;
+            await roomRef.child(`players/${uid}`).remove();
+            await roomRef.child("lastActiveAt").set(serverTimestamp());
           });
 
           actions.appendChild(minus);
           actions.appendChild(delta);
           actions.appendChild(plus);
+          actions.appendChild(del);
 
           row.appendChild(meta);
           row.appendChild(actions);
@@ -705,6 +776,7 @@
         startedAt: Date.now(),
         running: true,
       });
+      await roomRef.child("lastActiveAt").set(serverTimestamp());
     });
 
     qs("#timerStopBtn")?.addEventListener("click", async () => {
@@ -715,6 +787,7 @@
         startedAt: 0,
         running: false,
       });
+      await roomRef.child("lastActiveAt").set(serverTimestamp());
     });
 
     qs("#timerResetBtn")?.addEventListener("click", async () => {
@@ -726,6 +799,7 @@
         startedAt: 0,
         running: false,
       });
+      await roomRef.child("lastActiveAt").set(serverTimestamp());
     });
 
     // Local render loop (no writes)
@@ -1122,6 +1196,10 @@
           const playerRef = roomRef.child(`players/${userId}`);
           const playersRef = roomRef.child("players");
           const flagsRef = roomRef.child("flags");
+          const lastActiveRef = roomRef.child("lastActiveAt");
+
+          // mark active once on open (no per-second writes)
+          lastActiveRef.set(serverTimestamp());
 
           timerRef.on("value", (snap) => {
             timerState = snap.val() || timerState;
@@ -1155,6 +1233,9 @@
                 color: profile.color,
                 iconImage: profile.iconImage || "",
               });
+              // remove player entry on disconnect (requires rules allowing self delete)
+              playerRef.onDisconnect().remove();
+              lastActiveRef.onDisconnect().set(serverTimestamp());
               playerRefForSync = playerRef;
               authedUidForSync = authed.uid;
               syncProfileToFirebase();
@@ -1166,6 +1247,8 @@
               color: profile.color,
               iconImage: profile.iconImage || "",
             });
+            playerRef.onDisconnect().remove();
+            lastActiveRef.onDisconnect().set(serverTimestamp());
             playerRefForSync = playerRef;
             authedUidForSync = authed.uid;
           });
