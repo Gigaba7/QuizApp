@@ -482,37 +482,54 @@ body {
   font-size: 38px;
 }
 
-.overlayName {
-  margin-right: 12px;
+.pointsStack {
+  display: flex;
+  gap: 12px;
+  align-items: stretch;
 }
 
-.overlayScore {
-  opacity: 0.95;
+/* 上下配置は横並び、左右配置は縦並び */
+.overlayItem--point.side--top .pointsStack,
+.overlayItem--point.side--bottom .pointsStack {
+  flex-direction: row;
 }
 
-.scoreList {
-  margin-top: 8px;
-  display: grid;
-  gap: 6px;
+.overlayItem--point.side--left .pointsStack,
+.overlayItem--point.side--right .pointsStack {
+  flex-direction: column;
 }
 
-.scoreRow {
+.pointCard {
+  min-width: 220px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(0, 0, 0, 0.42);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 16px 50px rgba(0, 0, 0, 0.35);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.pointRow {
   display: flex;
   justify-content: space-between;
   gap: 12px;
   align-items: baseline;
-  font-size: 30px;
+  font-size: 34px;
   font-weight: 900;
+  line-height: 1.1;
 }
 
-.scoreRow .name {
+.pointRow .name {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 240px;
+  max-width: 260px;
 }
 
-.scoreRow .score {
+.pointRow .score {
   font-family: var(--mono);
   opacity: 0.95;
 }

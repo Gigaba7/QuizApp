@@ -317,8 +317,6 @@
 
     const nameEl = qs("#dsDisplayName");
     const paletteEl = qs("#dsColorPalette");
-    const customBtn = qs("#dsCustomColorBtn");
-    const customPicker = qs("#dsCustomColorPicker");
     const imgEl = qs("#dsImage");
     const clearImgBtn = qs("#dsClearImageBtn");
     const pasteNameBtn = qs("#dsPasteNameBtn");
@@ -347,7 +345,6 @@
 
     // init UI
     if (nameEl) nameEl.value = profile.name || DEFAULT_PROFILE.name;
-    if (customPicker) customPicker.value = profile.color || DEFAULT_PROFILE.color;
     if (timerScaleEl) timerScaleEl.value = String(layout.timer.scale);
     if (pointScaleEl) pointScaleEl.value = String(layout.point.scale);
 
@@ -435,15 +432,6 @@
       const c = String(t.getAttribute("data-color") || "");
       if (!c) return;
       profile.color = c;
-      if (customPicker) customPicker.value = c;
-      renderPaletteSelected();
-    });
-
-    customBtn?.addEventListener("click", () => {
-      customPicker?.click();
-    });
-    customPicker?.addEventListener("input", () => {
-      profile.color = String(customPicker.value || "") || DEFAULT_PROFILE.color;
       renderPaletteSelected();
     });
 
@@ -806,54 +794,76 @@
     const timerEl = qs("#ovTimer");
     const timerValEl = qs("#ovTimerValue");
     const pointEl = qs("#ovPoint");
-    const pointSingleEl = qs("#ovPointSingle");
-    const pointListEl = qs("#ovPointList");
-    const nameEl = qs("#ovName");
-    const scoreEl = qs("#ovScore");
+    const playersEl = qs("#ovPlayers");
 
     applyOverlayLayout(timerEl, layout.timer);
     applyOverlayLayout(pointEl, layout.point);
     setOverlayAccent(timerEl, profile.color);
-    setOverlayAccent(pointEl, profile.color);
-    setOverlayBackgroundImage(pointEl, profile.iconImage || "");
-
-    if (nameEl) nameEl.textContent = profile.name || DEFAULT_PROFILE.name;
 
     let timerState = { duration: 300, startedAt: 0, running: false };
-    let playerState = { name: profile.name, score: 100, color: profile.color, iconImage: profile.iconImage };
+    let playersState = {};
 
     const isTest = !roomId || roomId === "test";
 
     let testUserCount = Number(localStorage.getItem("test_user_count") || "3") || 3;
     testUserCount = clamp(testUserCount, 1, 12);
 
-    function renderPointList(count) {
-      if (!pointListEl) return;
-      const n = clamp(Number(count || 1), 1, 12);
-      const rows = [];
-      for (let i = 1; i <= n; i++) {
-        const nm = i === 1 ? (profile.name || DEFAULT_PROFILE.name) : `Player ${i}`;
-        const sc = 100 - (i - 1) * 7;
-        rows.push(`<div class="scoreRow"><span class="name">${nm}</span><span class="score">${sc}pt</span></div>`);
+    function renderPlayers(players) {
+      if (!playersEl) return;
+      const entries = Object.entries(players || {});
+      entries.sort((a, b) => String(a[1]?.name || "").localeCompare(String(b[1]?.name || "")));
+      playersEl.innerHTML = "";
+
+      for (const [uid, p] of entries) {
+        const card = document.createElement("div");
+        card.className = "pointCard";
+        const color = String(p?.color || DEFAULT_PROFILE.color);
+        card.style.borderColor = color;
+
+        const img = String(p?.iconImage || "");
+        if (img) {
+          card.style.backgroundImage = `linear-gradient(180deg, rgba(0,0,0,0.55), rgba(0,0,0,0.35)), url("${img}")`;
+        } else {
+          card.style.backgroundImage = "";
+        }
+
+        const row = document.createElement("div");
+        row.className = "pointRow";
+
+        const name = document.createElement("span");
+        name.className = "name";
+        name.textContent = String(p?.name || uid);
+        name.style.color = color;
+
+        const score = document.createElement("span");
+        score.className = "score";
+        score.textContent = `${Number(p?.score || 0)}pt`;
+
+        row.appendChild(name);
+        row.appendChild(score);
+        card.appendChild(row);
+        playersEl.appendChild(card);
       }
-      pointListEl.innerHTML = rows.join("");
     }
 
     function applyAll() {
       applyOverlayLayout(timerEl, layout.timer);
       applyOverlayLayout(pointEl, layout.point);
       setOverlayAccent(timerEl, profile.color);
-      setOverlayAccent(pointEl, profile.color);
-      setOverlayBackgroundImage(pointEl, profile.iconImage || "");
 
       if (isTest) {
-        // list view
-        pointSingleEl?.classList.add("hidden");
-        pointListEl?.classList.remove("hidden");
-        renderPointList(testUserCount);
+        const dummy = {};
+        for (let i = 1; i <= testUserCount; i++) {
+          dummy[`test_${i}`] = {
+            name: i === 1 ? profile.name || DEFAULT_PROFILE.name : `Player ${i}`,
+            score: 100 - (i - 1) * 7,
+            color: profile.color || DEFAULT_PROFILE.color,
+            iconImage: profile.iconImage || "",
+          };
+        }
+        renderPlayers(dummy);
       } else {
-        pointListEl?.classList.add("hidden");
-        pointSingleEl?.classList.remove("hidden");
+        renderPlayers(playersState);
       }
     }
 
@@ -904,15 +914,15 @@
           const roomRef = fb.db.ref(`rooms/${roomId}`);
           const timerRef = roomRef.child("timer");
           const playerRef = roomRef.child(`players/${userId}`);
+          const playersRef = roomRef.child("players");
 
           timerRef.on("value", (snap) => {
             timerState = snap.val() || timerState;
           });
 
-          playerRef.on("value", (snap) => {
-            const v = snap.val();
-            if (!v) return;
-            playerState = v;
+          playersRef.on("value", (snap) => {
+            playersState = snap.val() || {};
+            applyAll();
           });
 
           // upsert player identity (scoreは上書きしない)
@@ -944,19 +954,6 @@
     const tick = () => {
       const remaining = computeRemainingSeconds(timerState);
       if (timerValEl) timerValEl.textContent = formatTime(remaining);
-
-      const score = Number(playerState?.score || 0);
-      const pname = playerState?.name || profile.name || DEFAULT_PROFILE.name;
-      const pcolor = playerState?.color || profile.color || DEFAULT_PROFILE.color;
-      const pimg = (playerState?.iconImage || profile.iconImage || "").toString();
-
-      if (!isTest) {
-        if (nameEl) nameEl.textContent = pname;
-        if (scoreEl) scoreEl.textContent = `${score}pt`;
-      }
-      setOverlayAccent(pointEl, pcolor);
-      setOverlayAccent(timerEl, pcolor);
-      setOverlayBackgroundImage(pointEl, pimg);
 
       requestAnimationFrame(tick);
     };
