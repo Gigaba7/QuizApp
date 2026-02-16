@@ -373,6 +373,13 @@ body {
   align-items: center;
 }
 
+.deltaInput {
+  width: 84px;
+  height: 40px;
+  padding: 8px 10px;
+  border-radius: 14px;
+}
+
 .btnIcon {
   width: 40px;
   height: 40px;
@@ -395,15 +402,7 @@ body {
   font-weight: 900;
 }
 
-/* Config preview stage */
-.previewStage {
-  position: relative;
-  height: 380px;
-  border-radius: 16px;
-  border: 1px dashed rgba(255, 255, 255, 0.20);
-  background: rgba(0, 0, 0, 0.15);
-  overflow: hidden;
-}
+/* (removed) previewStage - config preview no longer used */
 
 /* Overlay (OBS) */
 .overlayBody {
@@ -447,21 +446,18 @@ body {
 
 .overlayValue {
   margin-top: 6px;
-  font-size: 26px;
+  font-size: 34px;
   font-weight: 900;
   line-height: 1.15;
 }
 
-.overlayIcon {
-  display: inline-block;
-  width: 34px;
-  height: 34px;
-  border-radius: 12px;
-  text-align: center;
-  line-height: 34px;
-  margin-right: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: rgba(255, 255, 255, 0.06);
+.overlayItem--timer .overlayValue {
+  font-size: 56px;
+  letter-spacing: 0.02em;
+}
+
+.overlayItem--point .overlayValue {
+  font-size: 38px;
 }
 
 .overlayName {
@@ -470,6 +466,71 @@ body {
 
 .overlayScore {
   opacity: 0.95;
+}
+
+.scoreList {
+  margin-top: 8px;
+  display: grid;
+  gap: 6px;
+}
+
+.scoreRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: baseline;
+  font-size: 30px;
+  font-weight: 900;
+}
+
+.scoreRow .name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 240px;
+}
+
+.scoreRow .score {
+  font-family: var(--mono);
+  opacity: 0.95;
+}
+
+/* Overlay test panel (only in room=test) */
+.testFab {
+  position: fixed;
+  bottom: 18px;
+  right: 18px;
+  z-index: 60;
+  padding: 10px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(0, 0, 0, 0.35);
+  color: var(--text);
+  cursor: pointer;
+  font-weight: 900;
+}
+
+.testPanel {
+  position: fixed;
+  right: 16px;
+  bottom: 70px;
+  z-index: 60;
+  width: min(420px, calc(100vw - 24px));
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.62), rgba(0, 0, 0, 0.38));
+  backdrop-filter: blur(10px);
+  box-shadow: var(--shadow);
+  padding: 12px;
+}
+
+.testPanel__head {
+  margin-bottom: 10px;
+}
+
+.testPanel__body {
+  display: grid;
+  gap: 10px;
 }
 
 /* Side anchors (stick to edge) */

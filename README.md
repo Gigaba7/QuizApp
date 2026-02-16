@@ -36,7 +36,7 @@
 ### 2) 事前（参加者）
 
 - `config.html` を開き、表示名/色/アイコン/レイアウトを保存
-- `overlay.html?room=test` でダミー表示の配置を調整
+- `overlay.html?room=test` で表示配置を調整（テスト用）
 - 当日は overlay URL の `room` を本番IDに変更
 
 ### 3) 当日（ホスト）

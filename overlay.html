@@ -12,21 +12,105 @@
     <div id="overlayRoot" class="overlayRoot">
       <div id="ovTimer" class="overlayItem overlayItem--timer">
         <div class="overlayBox">
-          <div class="overlayLabel">TIMER</div>
           <div id="ovTimerValue" class="overlayValue mono">--:--</div>
         </div>
       </div>
 
       <div id="ovPoint" class="overlayItem overlayItem--point">
         <div class="overlayBox">
-          <div class="overlayLabel">POINT</div>
-          <div class="overlayValue">
+          <div id="ovPointSingle" class="overlayValue">
             <span id="ovName" class="overlayName">--</span>
             <span id="ovScore" class="overlayScore mono">0pt</span>
+          </div>
+          <div id="ovPointList" class="scoreList hidden"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- テスト表示（room=test）用：コンパクト設定パネル -->
+    <div id="testPanel" class="testPanel hidden">
+      <div class="testPanel__head row row--between">
+        <div class="mono" style="font-weight: 900">TEST SETTINGS</div>
+        <button id="testPanelCloseBtn" class="btn btn--small" type="button">閉じる</button>
+      </div>
+      <div class="testPanel__body">
+        <div class="field">
+          <label class="label" for="tpDisplayName">表示名</label>
+          <div class="inputRow">
+            <input id="tpDisplayName" class="input" type="text" maxlength="24" placeholder="例: Player 1" />
+            <button id="tpPasteNameBtn" class="btn btn--small" type="button">ペースト</button>
+          </div>
+        </div>
+        <div class="field">
+          <label class="label" for="tpColor">カラー</label>
+          <input id="tpColor" class="input input--color" type="color" />
+        </div>
+        <div class="field">
+          <label class="label" for="tpImage">背景画像（ポイント枠）</label>
+          <input id="tpImage" class="input" type="file" accept="image/*" />
+          <div class="row row--wrap">
+            <button id="tpClearImageBtn" class="btn btn--small" type="button">画像を削除</button>
+          </div>
+        </div>
+
+        <div class="grid grid--2" style="margin-top: 10px">
+          <div class="field">
+            <div class="label">タイマー</div>
+            <div class="row row--wrap">
+              <label class="radio"><input type="radio" name="tpTimerVisible" value="on" /> 表示</label>
+              <label class="radio"><input type="radio" name="tpTimerVisible" value="off" /> 非表示</label>
+            </div>
+            <div class="row row--wrap" style="margin-top: 6px">
+              <label class="radio"><input type="radio" name="tpTimerSide" value="top" /> 上</label>
+              <label class="radio"><input type="radio" name="tpTimerSide" value="bottom" /> 下</label>
+              <label class="radio"><input type="radio" name="tpTimerSide" value="left" /> 左</label>
+              <label class="radio"><input type="radio" name="tpTimerSide" value="right" /> 右</label>
+            </div>
+            <div class="field" style="margin-top: 6px">
+              <label class="label" for="tpTimerScale">scale</label>
+              <input id="tpTimerScale" class="input" type="range" min="0.5" max="2" step="0.1" />
+            </div>
+          </div>
+          <div class="field">
+            <div class="label">ポイント</div>
+            <div class="row row--wrap">
+              <label class="radio"><input type="radio" name="tpPointVisible" value="on" /> 表示</label>
+              <label class="radio"><input type="radio" name="tpPointVisible" value="off" /> 非表示</label>
+            </div>
+            <div class="row row--wrap" style="margin-top: 6px">
+              <label class="radio"><input type="radio" name="tpPointSide" value="top" /> 上</label>
+              <label class="radio"><input type="radio" name="tpPointSide" value="bottom" /> 下</label>
+              <label class="radio"><input type="radio" name="tpPointSide" value="left" /> 左</label>
+              <label class="radio"><input type="radio" name="tpPointSide" value="right" /> 右</label>
+            </div>
+            <div class="field" style="margin-top: 6px">
+              <label class="label" for="tpPointScale">scale</label>
+              <input id="tpPointScale" class="input" type="range" min="0.5" max="2" step="0.1" />
+            </div>
+          </div>
+        </div>
+
+        <p id="tpSideError" class="notice notice--error hidden" style="margin-top: 10px">タイマーとポイントは同じ位置を選べません。</p>
+
+        <div class="grid grid--2" style="margin-top: 10px">
+          <div class="field">
+            <label class="label" for="tpUserCount">テスト表示：ユーザー数</label>
+            <input id="tpUserCount" class="input" type="number" min="1" max="12" step="1" />
+            <div class="hint muted">test時はポイント枠に複数ユーザーを並べて仮配置できます。</div>
+          </div>
+          <div class="field">
+            <label class="label" for="tpRoomPaste">本番用：roomId（ペースト）</label>
+            <div class="inputRow">
+              <input id="tpRoomPaste" class="input mono" type="text" maxlength="6" placeholder="123456" />
+              <button id="tpPasteRoomBtn" class="btn btn--small" type="button">ペースト</button>
+            </div>
+            <div class="hint muted">※ここで入れたroomIdへ自動遷移はしません（コピー用途）。</div>
           </div>
         </div>
       </div>
     </div>
+
+    <button id="testPanelOpenBtn" class="testFab hidden" type="button">設定</button>
 
     <!-- Firebase (compat) -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>

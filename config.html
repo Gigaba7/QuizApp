@@ -10,158 +10,27 @@
     <main class="container">
       <header class="header">
         <div class="brand">
-          <div class="brand__title">表示設定（事前設定OK）</div>
-          <div class="brand__sub">レイアウトは user 単位で localStorage に保存されます</div>
+          <div class="brand__title">表示設定</div>
+          <div class="brand__sub">このページは廃止しました（設定は overlay の test で行います）</div>
         </div>
         <nav class="nav">
           <a class="link" href="./index.html">ホーム</a>
-          <a class="link" href="./overlay.html?room=test" target="_blank" rel="noreferrer">overlayテスト</a>
+          <a class="link" href="./overlay.html?room=test" target="_blank" rel="noreferrer">overlayテスト（設定）</a>
         </nav>
       </header>
 
       <section class="card">
-        <h1 class="h1">ユーザー</h1>
-        <div class="grid grid--3">
-          <div class="field">
-            <label class="label" for="displayName">表示名</label>
-            <div class="inputRow">
-              <input id="displayName" class="input" type="text" maxlength="24" placeholder="例: Player 1" />
-              <button id="pasteDisplayNameBtn" class="btn btn--small" type="button">ペースト</button>
-            </div>
-          </div>
-          <div class="field">
-            <label class="label" for="displayColor">表示カラー</label>
-            <input id="displayColor" class="input input--color" type="color" />
-          </div>
-          <div class="field">
-            <label class="label" for="displayIconFile">アイコン画像（背景に使用）</label>
-            <input id="displayIconFile" class="input" type="file" accept="image/*" />
-            <div class="row row--wrap">
-              <button id="clearIconBtn" class="btn btn--small" type="button">画像を削除</button>
-              <span class="muted hint">PNG/JPG/WebP推奨</span>
-            </div>
-          </div>
-        </div>
-        <div class="hint muted">この情報は overlay がルームに接続したタイミングで Firebase の players に反映します。</div>
-      </section>
-
-      <section class="card">
-        <h2 class="h2">表示ON/OFF</h2>
-        <div class="grid grid--2">
-          <div class="field">
-            <div class="label">タイマー</div>
-            <div class="row">
-              <label class="radio"><input type="radio" name="timerVisible" value="on" /> 表示</label>
-              <label class="radio"><input type="radio" name="timerVisible" value="off" /> 非表示</label>
-            </div>
-          </div>
-          <div class="field">
-            <div class="label">ポイント</div>
-            <div class="row">
-              <label class="radio"><input type="radio" name="pointVisible" value="on" /> 表示</label>
-              <label class="radio"><input type="radio" name="pointVisible" value="off" /> 非表示</label>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section class="card">
-        <h2 class="h2">位置（上下左右・重複不可）</h2>
-        <p id="sideError" class="notice notice--error hidden">タイマーとポイントは同じ位置を選べません。</p>
-        <div class="grid grid--2">
-          <div class="field">
-            <div class="label">タイマー位置</div>
-            <div class="row row--wrap">
-              <label class="radio"><input type="radio" name="timerSide" value="top" /> 上</label>
-              <label class="radio"><input type="radio" name="timerSide" value="bottom" /> 下</label>
-              <label class="radio"><input type="radio" name="timerSide" value="left" /> 左</label>
-              <label class="radio"><input type="radio" name="timerSide" value="right" /> 右</label>
-            </div>
-          </div>
-          <div class="field">
-            <div class="label">ポイント位置</div>
-            <div class="row row--wrap">
-              <label class="radio"><input type="radio" name="pointSide" value="top" /> 上</label>
-              <label class="radio"><input type="radio" name="pointSide" value="bottom" /> 下</label>
-              <label class="radio"><input type="radio" name="pointSide" value="left" /> 左</label>
-              <label class="radio"><input type="radio" name="pointSide" value="right" /> 右</label>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section class="card">
-        <h2 class="h2">サイズ（scale 0.5〜2.0）</h2>
-        <div class="grid grid--2">
-          <div class="field">
-            <label class="label" for="timerScale">タイマー scale</label>
-            <input id="timerScale" class="input" type="range" min="0.5" max="2" step="0.1" />
-            <div class="hint muted"><span id="timerScaleView" class="mono"></span></div>
-          </div>
-          <div class="field">
-            <label class="label" for="pointScale">ポイント scale</label>
-            <input id="pointScale" class="input" type="range" min="0.5" max="2" step="0.1" />
-            <div class="hint muted"><span id="pointScaleView" class="mono"></span></div>
-          </div>
-        </div>
-      </section>
-
-      <section class="card">
-        <h2 class="h2">保存 / OBSリンク</h2>
+        <h1 class="h1">設定は overlay の test へ統合しました</h1>
+        <p class="muted">
+          <span class="mono">overlay.html?room=test</span> を開き、右下の「設定」から表示名・カラー・背景画像・配置・scale・テスト表示人数を調整できます。
+        </p>
         <div class="row row--wrap">
-          <button id="saveBtn" class="btn btn--primary">保存（localStorage）</button>
-          <button id="resetBtn" class="btn btn--danger">初期化</button>
-          <span id="saveStatus" class="muted"></span>
-        </div>
-
-        <hr class="hr" />
-
-        <div class="grid grid--3">
-          <div class="field">
-            <label class="label" for="roomIdForLink">roomId（当日入力）</label>
-            <div class="inputRow">
-              <input id="roomIdForLink" class="input" type="text" inputmode="numeric" maxlength="6" placeholder="例: 123456 / test" />
-              <button id="pasteRoomIdForLinkBtn" class="btn btn--small" type="button">ペースト</button>
-            </div>
-          </div>
-          <div class="field">
-            <label class="label" for="overlayUrl">overlay URL</label>
-            <input id="overlayUrl" class="input mono" type="text" readonly />
-          </div>
-          <div class="field">
-            <label class="label">&nbsp;</label>
-            <button id="copyOverlayLinkBtn" class="btn">配信用リンクをコピー</button>
-          </div>
-        </div>
-        <p class="muted">テスト: <span class="mono">overlay.html?room=test</span>（Firebase未接続のダミー表示）</p>
-      </section>
-
-      <section class="card">
-        <h2 class="h2">プレビュー（ダミーデータ）</h2>
-        <p class="muted">Firebase未接続でも常に動作します。ここでOBS配置を事前に調整できます。</p>
-        <div class="previewStage">
-          <div id="previewTimer" class="overlayItem overlayItem--timer">
-            <div class="overlayBox">
-              <div class="overlayLabel">TIMER</div>
-              <div class="overlayValue mono" id="previewTimerValue">05:00</div>
-            </div>
-          </div>
-          <div id="previewPoint" class="overlayItem overlayItem--point">
-            <div class="overlayBox">
-              <div class="overlayLabel">POINT</div>
-              <div class="overlayValue">
-                <span class="overlayName" id="previewName">サンプル名</span>
-                <span class="overlayScore mono" id="previewScore">100pt</span>
-              </div>
-            </div>
-          </div>
+          <a class="link" href="./overlay.html?room=test" target="_blank" rel="noreferrer">overlayテストを開く</a>
         </div>
       </section>
-
-      <footer class="footer muted">事前にここで配置を決めておけば、当日は overlay の room を変えるだけで使えます。</footer>
     </main>
 
-    <!-- Firebase (compat) ※config自体はFirebase不要。overlay/room用に同梱してもOK -->
+    <!-- Firebase (compat) -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
