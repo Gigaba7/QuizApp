@@ -520,7 +520,7 @@ body {
 .pointCard {
   width: 320px; /* fixed width (visual width scales with overlay scale) */
   flex: 0 0 320px;
-  height: 120px; /* fixed height so content can be vertically centered */
+  height: 104px; /* fixed height so content can be vertically centered */
   padding: 12px 14px;
   border-radius: 18px;
   border: 1px solid rgba(255, 255, 255, 0.22);
@@ -556,7 +556,7 @@ body {
 }
 
 .pointCard.is-twoLine {
-  height: 150px;
+  height: 132px;
 }
 
 .pointRow .name {
