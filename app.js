@@ -7,7 +7,7 @@
 
   const DEFAULT_LAYOUT = {
     timer: { visible: true, side: "top", scale: 1.0 },
-    point: { visible: true, side: "right", scale: 1.0, twoLine: false },
+    point: { visible: true, side: "right", scale: 1.0, fontScale: 1.0, twoLine: false },
   };
 
   const DEFAULT_PROFILE = {
@@ -52,6 +52,7 @@
     };
     merged.timer.visible = !!merged.timer.visible;
     merged.point.visible = !!merged.point.visible;
+    merged.point.fontScale = clamp(Number(merged.point.fontScale ?? 1.0), 0.7, 1.5);
     merged.point.twoLine = !!merged.point.twoLine;
     return merged;
   }
