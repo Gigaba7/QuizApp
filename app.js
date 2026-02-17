@@ -1105,66 +1105,6 @@
       });
       playersEl.innerHTML = "";
 
-      // Measure required card size from text (then apply uniform W/H to all cards)
-      // Uses the same CSS classes but overrides fixed W/H for measurement.
-      const measureRoot = document.createElement("div");
-      measureRoot.style.position = "fixed";
-      measureRoot.style.left = "-9999px";
-      measureRoot.style.top = "-9999px";
-      measureRoot.style.visibility = "hidden";
-      measureRoot.style.pointerEvents = "none";
-      measureRoot.style.display = "grid";
-      measureRoot.style.gap = "12px";
-      document.body.appendChild(measureRoot);
-
-      const willShow = entries.filter(([uid, p]) => !( !hostPointVisible && hostAuthUid && String(p?.authUid || "") === hostAuthUid ));
-      for (const [uid, p] of willShow) {
-        const card = document.createElement("div");
-        card.className = `pointCard${layout.point.twoLine ? " is-twoLine" : ""}`;
-        card.style.width = "max-content";
-        card.style.height = "max-content";
-        card.style.flex = "0 0 auto";
-
-        const row = document.createElement("div");
-        row.className = "pointRow";
-
-        const name = document.createElement("span");
-        name.className = "name";
-        name.textContent = String(p?.name || uid);
-
-        const score = document.createElement("span");
-        score.className = "score";
-        score.textContent = `${Number(p?.score || 0)}pt`;
-
-        row.appendChild(name);
-        row.appendChild(score);
-        card.appendChild(row);
-        measureRoot.appendChild(card);
-      }
-
-      let maxW = 0;
-      let maxH = 0;
-      Array.from(measureRoot.children).forEach((el) => {
-        const r = el.getBoundingClientRect();
-        maxW = Math.max(maxW, r.width);
-        maxH = Math.max(maxH, r.height);
-      });
-      document.body.removeChild(measureRoot);
-
-      // Apply uniform size (with small floors so empty rooms don't collapse)
-      const w = Math.max(220, Math.ceil(maxW || 0));
-      const hBase = Math.max(64, Math.ceil(maxH || 0));
-      // Use layout value (not DOM class) so it always matches the user's setting.
-      const isSideLR = layout?.point?.side === "left" || layout?.point?.side === "right";
-      const h = isSideLR ? Math.max(32, Math.ceil(hBase / 3)) : hBase;
-
-      // Keep CSS vars for fallback/debug, but rely on inline style on each card for certainty.
-      if (pointEl) {
-        pointEl.style.setProperty("--pointCardWBase", `${w}px`);
-        pointEl.style.setProperty("--pointCardHBase", `${hBase}px`);
-        pointEl.style.setProperty("--pointCardH", `${h}px`);
-      }
-
       const fitNameOnly = (cardEl, nameEl, scoreEl) => {
         if (!cardEl || !nameEl || !scoreEl) return;
         const base = 36;
@@ -1191,9 +1131,6 @@
 
         const card = document.createElement("div");
         card.className = `pointCard${layout.point.twoLine ? " is-twoLine" : ""}`;
-        card.style.width = `${w}px`;
-        card.style.height = `${h}px`;
-        card.style.flex = `0 0 ${w}px`;
         const color = String(p?.color || DEFAULT_PROFILE.color);
         card.style.borderColor = color;
 

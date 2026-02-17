@@ -518,9 +518,9 @@ body {
 }
 
 .pointCard {
-  width: var(--pointCardW, var(--pointCardWBase, 320px));
-  flex: 0 0 var(--pointCardW, var(--pointCardWBase, 320px));
-  height: var(--pointCardH, var(--pointCardHBase, 104px));
+  width: 320px; /* fixed width (visual width scales with overlay scale) */
+  flex: 0 0 320px;
+  height: 104px;
   padding: 12px 14px;
   border-radius: 18px;
   border: 1px solid rgba(255, 255, 255, 0.22);
@@ -535,7 +535,12 @@ body {
   place-items: center;
 }
 
-/* 左右配置（縦並び）の高さ圧縮はJSで --pointCardH を直接セットする */
+/* 左右配置（縦並び）は固定の基準高さにする */
+.overlayItem--point.side--left .pointCard,
+.overlayItem--point.side--right .pointCard {
+  height: 44px;
+  padding: 6px 10px;
+}
 
 .pointRow {
   display: flex;
@@ -555,6 +560,15 @@ body {
   align-items: center;
   gap: 6px;
   font-size: 42px;
+}
+
+.pointCard.is-twoLine {
+  height: 132px;
+}
+
+.overlayItem--point.side--left .pointCard.is-twoLine,
+.overlayItem--point.side--right .pointCard.is-twoLine {
+  height: 64px;
 }
 
 /* height/width are uniform across cards (controlled by JS via CSS vars) */
