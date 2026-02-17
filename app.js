@@ -7,7 +7,7 @@
 
   const DEFAULT_LAYOUT = {
     timer: { visible: true, side: "top", scale: 1.0 },
-    point: { visible: true, side: "right", scale: 1.0, twoLine: false },
+    point: { visible: true, side: "right", scale: 1.0, fontSize: 36, twoLine: false },
   };
 
   const DEFAULT_PROFILE = {
@@ -52,6 +52,7 @@
     };
     merged.timer.visible = !!merged.timer.visible;
     merged.point.visible = !!merged.point.visible;
+    merged.point.fontSize = clamp(Number(merged.point.fontSize ?? DEFAULT_LAYOUT.point.fontSize), 24, 60);
     merged.point.twoLine = !!merged.point.twoLine;
     return merged;
   }
@@ -342,6 +343,7 @@
 
     const timerScaleEl = qs("#dsTimerScale");
     const pointScaleEl = qs("#dsPointScale");
+    const pointFontSizeEl = qs("#dsPointFontSize");
     const pointTwoLineEl = qs("#dsPointTwoLine");
 
     const resetBtn = qs("#dsResetBtn");
@@ -359,6 +361,7 @@
     if (nameEl) nameEl.value = profile.name || DEFAULT_PROFILE.name;
     if (timerScaleEl) timerScaleEl.value = String(layout.timer.scale);
     if (pointScaleEl) pointScaleEl.value = String(layout.point.scale);
+    if (pointFontSizeEl) pointFontSizeEl.value = String(layout.point.fontSize ?? DEFAULT_LAYOUT.point.fontSize);
     if (pointTwoLineEl) pointTwoLineEl.checked = !!layout.point.twoLine;
 
     setRadio("dsTimerVisible", layout.timer.visible ? "on" : "off");
@@ -489,6 +492,10 @@
     });
     pointScaleEl?.addEventListener("input", () => {
       layout.point.scale = clamp(Number(pointScaleEl.value), 0.5, 2.0);
+      saveLayout(userId, layout);
+    });
+    pointFontSizeEl?.addEventListener("input", () => {
+      layout.point.fontSize = clamp(Number(pointFontSizeEl.value), 24, 60);
       saveLayout(userId, layout);
     });
     pointTwoLineEl?.addEventListener("change", () => {
@@ -671,6 +678,7 @@
       const resetBtn = qs("#rmDsResetBtn");
       const timerScaleEl = qs("#rmDsTimerScale");
       const pointScaleEl = qs("#rmDsPointScale");
+      const pointFontSizeEl = qs("#rmDsPointFontSize");
       const pointTwoLineEl = qs("#rmDsPointTwoLine");
 
       let layout = loadLayout(userId);
@@ -730,6 +738,7 @@
       if (nameEl) nameEl.value = profile.name || DEFAULT_PROFILE.name;
       if (timerScaleEl) timerScaleEl.value = String(layout.timer.scale);
       if (pointScaleEl) pointScaleEl.value = String(layout.point.scale);
+      if (pointFontSizeEl) pointFontSizeEl.value = String(layout.point.fontSize ?? DEFAULT_LAYOUT.point.fontSize);
       if (pointTwoLineEl) pointTwoLineEl.checked = !!layout.point.twoLine;
       setRadio("rmDsTimerVisible", layout.timer.visible ? "on" : "off");
       setRadio("rmDsPointVisible", layout.point.visible ? "on" : "off");
@@ -811,6 +820,10 @@
         layout.point.scale = clamp(Number(pointScaleEl.value), 0.5, 2.0);
         saveLayout(userId, layout);
       });
+      pointFontSizeEl?.addEventListener("input", () => {
+        layout.point.fontSize = clamp(Number(pointFontSizeEl.value), 24, 60);
+        saveLayout(userId, layout);
+      });
       pointTwoLineEl?.addEventListener("change", () => {
         layout.point.twoLine = !!pointTwoLineEl.checked;
         saveLayout(userId, layout);
@@ -830,6 +843,7 @@
         setRadio("rmDsPointSide", layout.point.side);
         if (timerScaleEl) timerScaleEl.value = String(layout.timer.scale);
         if (pointScaleEl) pointScaleEl.value = String(layout.point.scale);
+        if (pointFontSizeEl) pointFontSizeEl.value = String(layout.point.fontSize ?? DEFAULT_LAYOUT.point.fontSize);
         if (pointTwoLineEl) pointTwoLineEl.checked = !!layout.point.twoLine;
         renderPaletteSelected();
         disableConflictingSideOptions();
@@ -1107,8 +1121,8 @@
 
       const fitNameOnly = (cardEl, nameEl, scoreEl) => {
         if (!cardEl || !nameEl || !scoreEl) return;
-        const base = 36;
-        const min = 24; // lower than this: rely on "…" ellipsis instead of further shrinking
+        const base = clamp(Number(layout.point.fontSize ?? DEFAULT_LAYOUT.point.fontSize), 24, 60);
+        const min = Math.max(18, base - 12); // lower than this: rely on "…" ellipsis instead of further shrinking
         const gap = 12; // must match CSS gap
         nameEl.style.fontSize = `${base}px`;
 
@@ -1161,8 +1175,8 @@
         // after insertion (layout available), shrink only the name when needed.
         if (layout.point.twoLine) {
           // fit name within card width; if too small, rely on ellipsis
-          const base = 42;
-          const min = 26;
+          const base = clamp(Number(layout.point.fontSize ?? DEFAULT_LAYOUT.point.fontSize), 24, 60) + 6;
+          const min = Math.max(18, base - 16);
           name.style.maxWidth = `${Math.max(100, Math.floor(card.getBoundingClientRect().width - 28))}px`;
           for (let size = base; size >= min; size -= 1) {
             name.style.fontSize = `${size}px`;
@@ -1178,6 +1192,7 @@
       applyOverlayLayout(timerEl, layout.timer);
       applyOverlayLayout(pointEl, { ...layout.point, visible: !!layout.point.visible && !!hostPointsVisible });
       setOverlayAccent(timerEl, profile.color);
+      if (pointEl) pointEl.style.setProperty("--pointFontPx", `${Number(layout.point.fontSize ?? DEFAULT_LAYOUT.point.fontSize)}px`);
 
       if (isTest) {
         const dummy = {};
@@ -1248,6 +1263,7 @@
       const resetBtn = qs("#ovDsResetBtn");
       const timerScaleEl = qs("#ovDsTimerScale");
       const pointScaleEl = qs("#ovDsPointScale");
+      const pointFontSizeEl = qs("#ovDsPointFontSize");
       const pointTwoLineEl = qs("#ovDsPointTwoLine");
 
       const setRadio = (name, value) => {
@@ -1298,6 +1314,7 @@
       if (nameEl) nameEl.value = profile.name || DEFAULT_PROFILE.name;
       if (timerScaleEl) timerScaleEl.value = String(layout.timer.scale);
       if (pointScaleEl) pointScaleEl.value = String(layout.point.scale);
+      if (pointFontSizeEl) pointFontSizeEl.value = String(layout.point.fontSize ?? DEFAULT_LAYOUT.point.fontSize);
       if (pointTwoLineEl) pointTwoLineEl.checked = !!layout.point.twoLine;
       setRadio("ovDsTimerVisible", layout.timer.visible ? "on" : "off");
       setRadio("ovDsPointVisible", layout.point.visible ? "on" : "off");
@@ -1394,6 +1411,11 @@
         saveLayout(userId, layout);
         applyAll();
       });
+      pointFontSizeEl?.addEventListener("input", () => {
+        layout.point.fontSize = clamp(Number(pointFontSizeEl.value), 24, 60);
+        saveLayout(userId, layout);
+        applyAll();
+      });
       pointTwoLineEl?.addEventListener("change", () => {
         layout.point.twoLine = !!pointTwoLineEl.checked;
         saveLayout(userId, layout);
@@ -1417,6 +1439,7 @@
         setRadio("ovDsPointSide", layout.point.side);
         if (timerScaleEl) timerScaleEl.value = String(layout.timer.scale);
         if (pointScaleEl) pointScaleEl.value = String(layout.point.scale);
+        if (pointFontSizeEl) pointFontSizeEl.value = String(layout.point.fontSize ?? DEFAULT_LAYOUT.point.fontSize);
         if (pointTwoLineEl) pointTwoLineEl.checked = !!layout.point.twoLine;
         renderPaletteSelected();
         disableConflictingSideOptions();
