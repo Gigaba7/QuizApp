@@ -544,6 +544,16 @@ body {
   white-space: nowrap;
 }
 
+.pointCard.is-twoLine .pointRow {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+}
+
+.pointCard.is-twoLine .pointRow .score {
+  align-self: flex-end;
+}
+
 .pointRow .name {
   overflow: hidden;
   text-overflow: ellipsis;

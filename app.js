@@ -7,7 +7,7 @@
 
   const DEFAULT_LAYOUT = {
     timer: { visible: true, side: "top", scale: 1.0 },
-    point: { visible: true, side: "right", scale: 1.0 },
+    point: { visible: true, side: "right", scale: 1.0, twoLine: false },
   };
 
   const DEFAULT_PROFILE = {
@@ -52,6 +52,7 @@
     };
     merged.timer.visible = !!merged.timer.visible;
     merged.point.visible = !!merged.point.visible;
+    merged.point.twoLine = !!merged.point.twoLine;
     return merged;
   }
 
@@ -231,17 +232,6 @@
     return Promise.resolve(ok);
   }
 
-  async function readClipboardText() {
-    if (!navigator.clipboard?.readText) throw new Error("Clipboard readText not available");
-    return await navigator.clipboard.readText();
-  }
-
-  function dispatchInput(el) {
-    if (!el) return;
-    el.dispatchEvent(new Event("input", { bubbles: true }));
-    el.dispatchEvent(new Event("change", { bubbles: true }));
-  }
-
   async function initHome() {
     qs("#createRoomBtn")?.addEventListener("click", async () => {
       const fb = initFirebaseOnce();
@@ -260,7 +250,6 @@
     const closeBtn = qs("#closeJoinModalBtn");
     const input = qs("#joinRoomIdInput");
     const goBtn = qs("#joinGoBtn");
-    const pasteBtn = qs("#pasteJoinRoomIdBtn");
 
     const close = () => {
       modal?.classList.add("hidden");
@@ -295,23 +284,6 @@
     goBtn?.addEventListener("click", nav);
     input?.addEventListener("keydown", (e) => {
       if (e.key === "Enter") nav();
-    });
-
-    pasteBtn?.addEventListener("click", async () => {
-      try {
-        const t = (await readClipboardText()).trim();
-        if (!t) return;
-        // accept "test" or digits
-        if (t.toLowerCase() === "test") {
-          input.value = "test";
-        } else {
-          const digits = t.replace(/\D/g, "").slice(0, 6);
-          input.value = digits;
-        }
-        dispatchInput(input);
-      } catch {
-        alert("クリップボードの読み取りに失敗しました。ブラウザ設定/HTTPS/localhost を確認し、手動で貼り付けてください。");
-      }
     });
 
     // Display settings (moved here)
@@ -367,10 +339,10 @@
     const paletteEl = qs("#dsColorPalette");
     const imgEl = qs("#dsImage");
     const clearImgBtn = qs("#dsClearImageBtn");
-    const pasteNameBtn = qs("#dsPasteNameBtn");
 
     const timerScaleEl = qs("#dsTimerScale");
     const pointScaleEl = qs("#dsPointScale");
+    const pointTwoLineEl = qs("#dsPointTwoLine");
 
     const resetBtn = qs("#dsResetBtn");
     const sideError = qs("#dsSideError");
@@ -387,6 +359,7 @@
     if (nameEl) nameEl.value = profile.name || DEFAULT_PROFILE.name;
     if (timerScaleEl) timerScaleEl.value = String(layout.timer.scale);
     if (pointScaleEl) pointScaleEl.value = String(layout.point.scale);
+    if (pointTwoLineEl) pointTwoLineEl.checked = !!layout.point.twoLine;
 
     setRadio("dsTimerVisible", layout.timer.visible ? "on" : "off");
     setRadio("dsPointVisible", layout.point.visible ? "on" : "off");
@@ -458,17 +431,6 @@
       saveProfile(userId, profile);
     });
 
-    pasteNameBtn?.addEventListener("click", async () => {
-      try {
-        const t = (await readClipboardText()).trim();
-        if (!t) return;
-        if (nameEl) nameEl.value = t.slice(0, 24);
-        dispatchInput(nameEl);
-      } catch {
-        alert("クリップボードの読み取りに失敗しました。ブラウザ設定/HTTPS/localhost を確認し、手動で貼り付けてください。");
-      }
-    });
-
     imgEl?.addEventListener("change", () => {
       const f = imgEl.files?.[0];
       if (!f) return;
@@ -527,6 +489,11 @@
     });
     pointScaleEl?.addEventListener("input", () => {
       layout.point.scale = clamp(Number(pointScaleEl.value), 0.5, 2.0);
+      saveLayout(userId, layout);
+    });
+
+    pointTwoLineEl?.addEventListener("change", () => {
+      layout.point.twoLine = !!pointTwoLineEl.checked;
       saveLayout(userId, layout);
     });
 
@@ -698,7 +665,6 @@
 
     const initHostSettingsControls = () => {
       const nameEl = qs("#rmDsDisplayName");
-      const pasteNameBtn = qs("#rmDsPasteNameBtn");
       const paletteEl = qs("#rmDsColorPalette");
       const imgEl = qs("#rmDsImage");
       const clearImgBtn = qs("#rmDsClearImageBtn");
@@ -706,6 +672,7 @@
       const resetBtn = qs("#rmDsResetBtn");
       const timerScaleEl = qs("#rmDsTimerScale");
       const pointScaleEl = qs("#rmDsPointScale");
+      const pointTwoLineEl = qs("#rmDsPointTwoLine");
 
       let layout = loadLayout(userId);
       let profile = loadProfile(userId);
@@ -764,6 +731,7 @@
       if (nameEl) nameEl.value = profile.name || DEFAULT_PROFILE.name;
       if (timerScaleEl) timerScaleEl.value = String(layout.timer.scale);
       if (pointScaleEl) pointScaleEl.value = String(layout.point.scale);
+      if (pointTwoLineEl) pointTwoLineEl.checked = !!layout.point.twoLine;
       setRadio("rmDsTimerVisible", layout.timer.visible ? "on" : "off");
       setRadio("rmDsPointVisible", layout.point.visible ? "on" : "off");
       setRadio("rmDsTimerSide", layout.timer.side);
@@ -775,17 +743,6 @@
         profile.name = (nameEl.value || "").toString().slice(0, 24) || DEFAULT_PROFILE.name;
         persist();
       });
-      pasteNameBtn?.addEventListener("click", async () => {
-        try {
-          const t = (await readClipboardText()).trim();
-          if (!t) return;
-          if (nameEl) nameEl.value = t.slice(0, 24);
-          dispatchInput(nameEl);
-        } catch {
-          alert("クリップボードの読み取りに失敗しました。ブラウザ設定/HTTPS/localhost を確認し、手動で貼り付けてください。");
-        }
-      });
-
       paletteEl?.addEventListener("click", (e) => {
         const t = e.target;
         if (!t?.classList?.contains("colorSwatch")) return;
@@ -855,6 +812,10 @@
         layout.point.scale = clamp(Number(pointScaleEl.value), 0.5, 2.0);
         saveLayout(userId, layout);
       });
+      pointTwoLineEl?.addEventListener("change", () => {
+        layout.point.twoLine = !!pointTwoLineEl.checked;
+        saveLayout(userId, layout);
+      });
 
       resetBtn?.addEventListener("click", () => {
         localStorage.removeItem(layoutKey(userId));
@@ -870,6 +831,7 @@
         setRadio("rmDsPointSide", layout.point.side);
         if (timerScaleEl) timerScaleEl.value = String(layout.timer.scale);
         if (pointScaleEl) pointScaleEl.value = String(layout.point.scale);
+        if (pointTwoLineEl) pointTwoLineEl.checked = !!layout.point.twoLine;
         renderPaletteSelected();
         disableConflictingSideOptions();
       });
@@ -1169,7 +1131,7 @@
         if (!hostPointVisible && hostAuthUid && String(p?.authUid || "") === hostAuthUid) continue;
 
         const card = document.createElement("div");
-        card.className = "pointCard";
+        card.className = `pointCard${layout.point.twoLine ? " is-twoLine" : ""}`;
         const color = String(p?.color || DEFAULT_PROFILE.color);
         card.style.borderColor = color;
 
@@ -1198,7 +1160,18 @@
         playersEl.appendChild(card);
 
         // after insertion (layout available), shrink only the name when needed.
-        fitNameOnly(card, name, score);
+        if (layout.point.twoLine) {
+          // fit name within card width; if too small, rely on ellipsis
+          const base = 34;
+          const min = 22;
+          name.style.maxWidth = `${Math.max(100, Math.floor(card.getBoundingClientRect().width - 28))}px`;
+          for (let size = base; size >= min; size -= 1) {
+            name.style.fontSize = `${size}px`;
+            if (name.scrollWidth <= name.clientWidth + 1) break;
+          }
+        } else {
+          fitNameOnly(card, name, score);
+        }
       }
     }
 
@@ -1269,7 +1242,6 @@
 
     const initAdjustModalControls = () => {
       const nameEl = qs("#ovDsDisplayName");
-      const pasteNameBtn = qs("#ovDsPasteNameBtn");
       const paletteEl = qs("#ovDsColorPalette");
       const imgEl = qs("#ovDsImage");
       const clearImgBtn = qs("#ovDsClearImageBtn");
@@ -1277,6 +1249,7 @@
       const resetBtn = qs("#ovDsResetBtn");
       const timerScaleEl = qs("#ovDsTimerScale");
       const pointScaleEl = qs("#ovDsPointScale");
+      const pointTwoLineEl = qs("#ovDsPointTwoLine");
 
       const setRadio = (name, value) => {
         const el = qs(`input[name="${name}"][value="${value}"]`);
@@ -1326,6 +1299,7 @@
       if (nameEl) nameEl.value = profile.name || DEFAULT_PROFILE.name;
       if (timerScaleEl) timerScaleEl.value = String(layout.timer.scale);
       if (pointScaleEl) pointScaleEl.value = String(layout.point.scale);
+      if (pointTwoLineEl) pointTwoLineEl.checked = !!layout.point.twoLine;
       setRadio("ovDsTimerVisible", layout.timer.visible ? "on" : "off");
       setRadio("ovDsPointVisible", layout.point.visible ? "on" : "off");
       setRadio("ovDsTimerSide", layout.timer.side);
@@ -1340,17 +1314,6 @@
         syncProfileToFirebase();
         applyAll();
       });
-      pasteNameBtn?.addEventListener("click", async () => {
-        try {
-          const t = (await readClipboardText()).trim();
-          if (!t) return;
-          if (nameEl) nameEl.value = t.slice(0, 24);
-          dispatchInput(nameEl);
-        } catch {
-          alert("クリップボードの読み取りに失敗しました。ブラウザ設定/HTTPS/localhost を確認し、手動で貼り付けてください。");
-        }
-      });
-
       paletteEl?.addEventListener("click", (e) => {
         const t = e.target;
         if (!t?.classList?.contains("colorSwatch")) return;
@@ -1432,6 +1395,11 @@
         saveLayout(userId, layout);
         applyAll();
       });
+      pointTwoLineEl?.addEventListener("change", () => {
+        layout.point.twoLine = !!pointTwoLineEl.checked;
+        saveLayout(userId, layout);
+        applyAll();
+      });
 
       resetBtn?.addEventListener("click", () => {
         localStorage.removeItem(layoutKey(userId));
@@ -1450,6 +1418,7 @@
         setRadio("ovDsPointSide", layout.point.side);
         if (timerScaleEl) timerScaleEl.value = String(layout.timer.scale);
         if (pointScaleEl) pointScaleEl.value = String(layout.point.scale);
+        if (pointTwoLineEl) pointTwoLineEl.checked = !!layout.point.twoLine;
         renderPaletteSelected();
         disableConflictingSideOptions();
       });

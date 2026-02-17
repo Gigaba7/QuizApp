@@ -38,7 +38,6 @@
             <label class="label" for="ovDsDisplayName">表示名</label>
             <div class="inputRow">
               <input id="ovDsDisplayName" class="input" type="text" maxlength="24" placeholder="例: Player 1" />
-              <button id="ovDsPasteNameBtn" class="btn btn--small" type="button">ペースト</button>
             </div>
           </div>
           <div class="field">
@@ -49,6 +48,7 @@
               <button class="colorSwatch" type="button" data-color="#00c2ff" aria-label="水色"></button>
               <button class="colorSwatch" type="button" data-color="#ffb020" aria-label="オレンジ"></button>
               <button class="colorSwatch" type="button" data-color="#ff3b66" aria-label="ピンク"></button>
+              <button class="colorSwatch" type="button" data-color="#ef4444" aria-label="赤"></button>
               <button class="colorSwatch" type="button" data-color="#ffffff" aria-label="白"></button>
               <button class="colorSwatch" type="button" data-color="#9aa4b2" aria-label="グレー"></button>
               <button class="colorSwatch" type="button" data-color="#111827" aria-label="黒"></button>
@@ -102,6 +102,12 @@
             <div class="field" style="margin-top: 6px">
               <label class="label" for="ovDsPointScale">scale</label>
               <input id="ovDsPointScale" class="input" type="range" min="0.5" max="2" step="0.1" />
+            </div>
+            <div class="field" style="margin-top: 6px">
+              <label class="radio" title="ポイントを2行表示にします（名前→ポイント）">
+                <input id="ovDsPointTwoLine" type="checkbox" />
+                ポイントを2行表示
+              </label>
             </div>
           </div>
         </div>
