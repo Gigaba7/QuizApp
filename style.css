@@ -329,7 +329,7 @@ body {
 
 .modal__panel {
   position: relative;
-  width: min(560px, calc(100vw - 28px));
+  width: min(920px, calc(100vw - 28px));
   margin: 10vh auto 0;
   border-radius: 18px;
   border: 1px solid rgba(255, 255, 255, 0.16);
@@ -518,7 +518,8 @@ body {
 }
 
 .pointCard {
-  min-width: 220px;
+  width: 320px; /* fixed width (visual width scales with overlay scale) */
+  flex: 0 0 320px;
   padding: 12px 14px;
   border-radius: 18px;
   border: 1px solid rgba(255, 255, 255, 0.22);

@@ -1144,28 +1144,23 @@
       });
       playersEl.innerHTML = "";
 
-      const fitRowFont = (cardEl, rowEl, scoreEl) => {
-        if (!cardEl || !rowEl || !scoreEl) return;
+      const fitNameOnly = (cardEl, nameEl, scoreEl) => {
+        if (!cardEl || !nameEl || !scoreEl) return;
         const base = 34;
-        const min = 18;
-        let size = base;
-        rowEl.style.fontSize = `${size}px`;
+        const min = 22; // lower than this: rely on "…" ellipsis instead of further shrinking
+        const gap = 12; // must match CSS gap
+        nameEl.style.fontSize = `${base}px`;
 
-        // If score wraps/overflows card width, shrink stepwise until it fits.
-        // Use bounding boxes so ellipsis on name doesn't cause false positives.
         const cardRect = cardEl.getBoundingClientRect();
-        const paddingRight = 6;
-        for (let i = 0; i < 24; i++) {
-          const scoreRect = scoreEl.getBoundingClientRect();
-          const rowRect = rowEl.getBoundingClientRect();
-          const overflowX = scoreRect.right > cardRect.right - paddingRight || rowRect.right > cardRect.right - paddingRight;
-          if (!overflowX) break;
-          size -= 1;
-          if (size < min) {
-            size = min;
-            break;
-          }
-          rowEl.style.fontSize = `${size}px`;
+        const scoreRect = scoreEl.getBoundingClientRect();
+        const maxName = Math.max(80, Math.floor(cardRect.width - scoreRect.width - gap - 28)); // 28 ~= padding
+        nameEl.style.maxWidth = `${maxName}px`;
+
+        for (let size = base; size >= min; size -= 1) {
+          nameEl.style.fontSize = `${size}px`;
+          const nRect = nameEl.getBoundingClientRect();
+          const sRect = scoreEl.getBoundingClientRect();
+          if (nRect.right + gap <= sRect.left) break;
         }
       };
 
@@ -1202,8 +1197,8 @@
         card.appendChild(row);
         playersEl.appendChild(card);
 
-        // after insertion (layout available), shrink font only when it overflows
-        fitRowFont(card, row, score);
+        // after insertion (layout available), shrink only the name when needed.
+        fitNameOnly(card, name, score);
       }
     }
 
