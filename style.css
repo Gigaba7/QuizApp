@@ -518,9 +518,9 @@ body {
 }
 
 .pointCard {
-  width: var(--pointCardW, 320px);
-  flex: 0 0 var(--pointCardW, 320px);
-  height: var(--pointCardH, 104px);
+  width: var(--pointCardW, var(--pointCardWBase, 320px));
+  flex: 0 0 var(--pointCardW, var(--pointCardWBase, 320px));
+  height: var(--pointCardH, var(--pointCardHBase, 104px));
   padding: 12px 14px;
   border-radius: 18px;
   border: 1px solid rgba(255, 255, 255, 0.22);
@@ -534,6 +534,8 @@ body {
   display: grid;
   place-items: center;
 }
+
+/* 左右配置（縦並び）の高さ圧縮はJSで --pointCardH を直接セットする */
 
 .pointRow {
   display: flex;
