@@ -503,7 +503,7 @@ body {
 .pointsStack {
   display: flex;
   gap: 12px;
-  align-items: stretch;
+  align-items: center;
 }
 
 /* 上下配置は横並び、左右配置は縦並び */
@@ -520,6 +520,7 @@ body {
 .pointCard {
   width: 320px; /* fixed width (visual width scales with overlay scale) */
   flex: 0 0 320px;
+  height: 120px; /* fixed height so content can be vertically centered */
   padding: 12px 14px;
   border-radius: 18px;
   border: 1px solid rgba(255, 255, 255, 0.22);
@@ -530,6 +531,8 @@ body {
   background-position: center;
   background-repeat: no-repeat;
   overflow: hidden;
+  display: grid;
+  place-items: center;
 }
 
 .pointRow {
@@ -550,6 +553,10 @@ body {
   align-items: center;
   gap: 6px;
   font-size: 40px;
+}
+
+.pointCard.is-twoLine {
+  height: 150px;
 }
 
 .pointRow .name {
