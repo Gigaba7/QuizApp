@@ -1153,17 +1153,16 @@
 
       // Apply uniform size (with small floors so empty rooms don't collapse)
       const w = Math.max(220, Math.ceil(maxW || 0));
-      const h = Math.max(64, Math.ceil(maxH || 0));
+      const hBase = Math.max(64, Math.ceil(maxH || 0));
+      // Use layout value (not DOM class) so it always matches the user's setting.
+      const isSideLR = layout?.point?.side === "left" || layout?.point?.side === "right";
+      const h = isSideLR ? Math.max(32, Math.ceil(hBase / 3)) : hBase;
+
+      // Keep CSS vars for fallback/debug, but rely on inline style on each card for certainty.
       if (pointEl) {
         pointEl.style.setProperty("--pointCardWBase", `${w}px`);
-        pointEl.style.setProperty("--pointCardHBase", `${h}px`);
-        // Use layout value (not DOM class) so it always matches the user's setting.
-        const isSideLR = layout?.point?.side === "left" || layout?.point?.side === "right";
-        if (isSideLR) {
-          pointEl.style.setProperty("--pointCardH", `${Math.max(32, Math.ceil(h / 3))}px`);
-        } else {
-          pointEl.style.removeProperty("--pointCardH");
-        }
+        pointEl.style.setProperty("--pointCardHBase", `${hBase}px`);
+        pointEl.style.setProperty("--pointCardH", `${h}px`);
       }
 
       const fitNameOnly = (cardEl, nameEl, scoreEl) => {
@@ -1192,6 +1191,9 @@
 
         const card = document.createElement("div");
         card.className = `pointCard${layout.point.twoLine ? " is-twoLine" : ""}`;
+        card.style.width = `${w}px`;
+        card.style.height = `${h}px`;
+        card.style.flex = `0 0 ${w}px`;
         const color = String(p?.color || DEFAULT_PROFILE.color);
         card.style.borderColor = color;
 
