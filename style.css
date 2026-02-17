@@ -518,9 +518,9 @@ body {
 }
 
 .pointCard {
-  width: 320px; /* fixed width (visual width scales with overlay scale) */
-  flex: 0 0 320px;
-  height: 104px; /* fixed height so content can be vertically centered */
+  width: var(--pointCardW, 320px);
+  flex: 0 0 var(--pointCardW, 320px);
+  height: var(--pointCardH, 104px);
   padding: 12px 14px;
   border-radius: 18px;
   border: 1px solid rgba(255, 255, 255, 0.22);
@@ -555,9 +555,7 @@ body {
   font-size: 42px;
 }
 
-.pointCard.is-twoLine {
-  height: 132px;
-}
+/* height/width are uniform across cards (controlled by JS via CSS vars) */
 
 .pointRow .name {
   overflow: hidden;
