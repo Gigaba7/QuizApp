@@ -563,10 +563,6 @@ body {
   align-items: center;
 }
 
-.pointCard.is-twoLine {
-  height: 132px;
-}
-
 /* 左右/上下でカードサイズは変えない（上下配置を基準） */
 
 .pointRow .name {
