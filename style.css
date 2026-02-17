@@ -536,13 +536,6 @@ body {
   place-items: center;
 }
 
-/* 左右配置（縦並び）は固定の基準高さにする */
-.overlayItem--point.side--left .pointCard,
-.overlayItem--point.side--right .pointCard {
-  height: 44px;
-  padding: 6px 10px;
-}
-
 .pointRow {
   display: flex;
   justify-content: center;
@@ -567,12 +560,7 @@ body {
   height: 132px;
 }
 
-.overlayItem--point.side--left .pointCard.is-twoLine,
-.overlayItem--point.side--right .pointCard.is-twoLine {
-  height: 64px;
-}
-
-/* height/width are uniform across cards (controlled by JS via CSS vars) */
+/* 左右/上下でカードサイズは変えない（上下配置を基準） */
 
 .pointRow .name {
   overflow: hidden;
