@@ -1155,8 +1155,8 @@
       const w = Math.max(220, Math.ceil(maxW || 0));
       const h = Math.max(64, Math.ceil(maxH || 0));
       if (pointEl) {
-        pointEl.style.setProperty("--pointCardW", `${w}px`);
-        pointEl.style.setProperty("--pointCardH", `${h}px`);
+        pointEl.style.setProperty("--pointCardWBase", `${w}px`);
+        pointEl.style.setProperty("--pointCardHBase", `${h}px`);
       }
 
       const fitNameOnly = (cardEl, nameEl, scoreEl) => {
