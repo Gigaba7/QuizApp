@@ -1162,7 +1162,7 @@
         // after insertion (layout available), shrink only the name when needed.
         if (layout.point.twoLine) {
           // fit name within card width; if too small, rely on ellipsis
-          const base = 34;
+          const base = 40;
           const min = 22;
           name.style.maxWidth = `${Math.max(100, Math.floor(card.getBoundingClientRect().width - 28))}px`;
           for (let size = base; size >= min; size -= 1) {
