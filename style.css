@@ -518,10 +518,10 @@ body {
 }
 
 .pointCard {
-  width: 320px; /* fixed width (visual width scales with overlay scale) */
+  width: var(--pointCardW, 320px); /* fixed width (visual width scales with overlay scale) */
   /* flex-basis must be auto so that in column layout it doesn't become "height" */
   flex: 0 0 auto;
-  height: 104px;
+  height: var(--pointCardH, 104px);
   padding: 12px 10px;
   border-radius: 18px;
   border: 1px solid rgba(255, 255, 255, 0.22);

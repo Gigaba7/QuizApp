@@ -7,7 +7,7 @@
 
   const DEFAULT_LAYOUT = {
     timer: { visible: true, side: "top", scale: 1.0 },
-    point: { visible: true, side: "right", scale: 1.0, fontSize: 36, twoLine: false },
+    point: { visible: true, side: "right", scale: 1.0, fontSize: 36, cardW: 320, cardH: 104, twoLine: false },
   };
 
   const DEFAULT_PROFILE = {
@@ -53,6 +53,8 @@
     merged.timer.visible = !!merged.timer.visible;
     merged.point.visible = !!merged.point.visible;
     merged.point.fontSize = clamp(Number(merged.point.fontSize ?? DEFAULT_LAYOUT.point.fontSize), 24, 60);
+    merged.point.cardW = clamp(Number(merged.point.cardW ?? DEFAULT_LAYOUT.point.cardW), 180, 700);
+    merged.point.cardH = clamp(Number(merged.point.cardH ?? DEFAULT_LAYOUT.point.cardH), 40, 260);
     merged.point.twoLine = !!merged.point.twoLine;
     return merged;
   }
@@ -344,6 +346,8 @@
     const timerScaleEl = qs("#dsTimerScale");
     const pointScaleEl = qs("#dsPointScale");
     const pointFontSizeEl = qs("#dsPointFontSize");
+    const pointCardWEl = qs("#dsPointCardW");
+    const pointCardHEl = qs("#dsPointCardH");
     const pointTwoLineEl = qs("#dsPointTwoLine");
 
     const resetBtn = qs("#dsResetBtn");
@@ -362,6 +366,8 @@
     if (timerScaleEl) timerScaleEl.value = String(layout.timer.scale);
     if (pointScaleEl) pointScaleEl.value = String(layout.point.scale);
     if (pointFontSizeEl) pointFontSizeEl.value = String(layout.point.fontSize ?? DEFAULT_LAYOUT.point.fontSize);
+    if (pointCardWEl) pointCardWEl.value = String(layout.point.cardW ?? DEFAULT_LAYOUT.point.cardW);
+    if (pointCardHEl) pointCardHEl.value = String(layout.point.cardH ?? DEFAULT_LAYOUT.point.cardH);
     if (pointTwoLineEl) pointTwoLineEl.checked = !!layout.point.twoLine;
 
     setRadio("dsTimerVisible", layout.timer.visible ? "on" : "off");
@@ -496,6 +502,14 @@
     });
     pointFontSizeEl?.addEventListener("input", () => {
       layout.point.fontSize = clamp(Number(pointFontSizeEl.value), 24, 60);
+      saveLayout(userId, layout);
+    });
+    pointCardWEl?.addEventListener("input", () => {
+      layout.point.cardW = clamp(Number(pointCardWEl.value), 180, 700);
+      saveLayout(userId, layout);
+    });
+    pointCardHEl?.addEventListener("input", () => {
+      layout.point.cardH = clamp(Number(pointCardHEl.value), 40, 260);
       saveLayout(userId, layout);
     });
     pointTwoLineEl?.addEventListener("change", () => {
@@ -679,6 +693,8 @@
       const timerScaleEl = qs("#rmDsTimerScale");
       const pointScaleEl = qs("#rmDsPointScale");
       const pointFontSizeEl = qs("#rmDsPointFontSize");
+      const pointCardWEl = qs("#rmDsPointCardW");
+      const pointCardHEl = qs("#rmDsPointCardH");
       const pointTwoLineEl = qs("#rmDsPointTwoLine");
 
       let layout = loadLayout(userId);
@@ -739,6 +755,8 @@
       if (timerScaleEl) timerScaleEl.value = String(layout.timer.scale);
       if (pointScaleEl) pointScaleEl.value = String(layout.point.scale);
       if (pointFontSizeEl) pointFontSizeEl.value = String(layout.point.fontSize ?? DEFAULT_LAYOUT.point.fontSize);
+      if (pointCardWEl) pointCardWEl.value = String(layout.point.cardW ?? DEFAULT_LAYOUT.point.cardW);
+      if (pointCardHEl) pointCardHEl.value = String(layout.point.cardH ?? DEFAULT_LAYOUT.point.cardH);
       if (pointTwoLineEl) pointTwoLineEl.checked = !!layout.point.twoLine;
       setRadio("rmDsTimerVisible", layout.timer.visible ? "on" : "off");
       setRadio("rmDsPointVisible", layout.point.visible ? "on" : "off");
@@ -824,6 +842,14 @@
         layout.point.fontSize = clamp(Number(pointFontSizeEl.value), 24, 60);
         saveLayout(userId, layout);
       });
+      pointCardWEl?.addEventListener("input", () => {
+        layout.point.cardW = clamp(Number(pointCardWEl.value), 180, 700);
+        saveLayout(userId, layout);
+      });
+      pointCardHEl?.addEventListener("input", () => {
+        layout.point.cardH = clamp(Number(pointCardHEl.value), 40, 260);
+        saveLayout(userId, layout);
+      });
       pointTwoLineEl?.addEventListener("change", () => {
         layout.point.twoLine = !!pointTwoLineEl.checked;
         saveLayout(userId, layout);
@@ -844,6 +870,8 @@
         if (timerScaleEl) timerScaleEl.value = String(layout.timer.scale);
         if (pointScaleEl) pointScaleEl.value = String(layout.point.scale);
         if (pointFontSizeEl) pointFontSizeEl.value = String(layout.point.fontSize ?? DEFAULT_LAYOUT.point.fontSize);
+        if (pointCardWEl) pointCardWEl.value = String(layout.point.cardW ?? DEFAULT_LAYOUT.point.cardW);
+        if (pointCardHEl) pointCardHEl.value = String(layout.point.cardH ?? DEFAULT_LAYOUT.point.cardH);
         if (pointTwoLineEl) pointTwoLineEl.checked = !!layout.point.twoLine;
         renderPaletteSelected();
         disableConflictingSideOptions();
@@ -1193,6 +1221,8 @@
       applyOverlayLayout(pointEl, { ...layout.point, visible: !!layout.point.visible && !!hostPointsVisible });
       setOverlayAccent(timerEl, profile.color);
       if (pointEl) pointEl.style.setProperty("--pointFontPx", `${Number(layout.point.fontSize ?? DEFAULT_LAYOUT.point.fontSize)}px`);
+      if (pointEl) pointEl.style.setProperty("--pointCardW", `${Number(layout.point.cardW ?? DEFAULT_LAYOUT.point.cardW)}px`);
+      if (pointEl) pointEl.style.setProperty("--pointCardH", `${Number(layout.point.cardH ?? DEFAULT_LAYOUT.point.cardH)}px`);
 
       if (isTest) {
         const dummy = {};
@@ -1264,6 +1294,8 @@
       const timerScaleEl = qs("#ovDsTimerScale");
       const pointScaleEl = qs("#ovDsPointScale");
       const pointFontSizeEl = qs("#ovDsPointFontSize");
+      const pointCardWEl = qs("#ovDsPointCardW");
+      const pointCardHEl = qs("#ovDsPointCardH");
       const pointTwoLineEl = qs("#ovDsPointTwoLine");
 
       const setRadio = (name, value) => {
@@ -1315,6 +1347,8 @@
       if (timerScaleEl) timerScaleEl.value = String(layout.timer.scale);
       if (pointScaleEl) pointScaleEl.value = String(layout.point.scale);
       if (pointFontSizeEl) pointFontSizeEl.value = String(layout.point.fontSize ?? DEFAULT_LAYOUT.point.fontSize);
+      if (pointCardWEl) pointCardWEl.value = String(layout.point.cardW ?? DEFAULT_LAYOUT.point.cardW);
+      if (pointCardHEl) pointCardHEl.value = String(layout.point.cardH ?? DEFAULT_LAYOUT.point.cardH);
       if (pointTwoLineEl) pointTwoLineEl.checked = !!layout.point.twoLine;
       setRadio("ovDsTimerVisible", layout.timer.visible ? "on" : "off");
       setRadio("ovDsPointVisible", layout.point.visible ? "on" : "off");
@@ -1416,6 +1450,16 @@
         saveLayout(userId, layout);
         applyAll();
       });
+      pointCardWEl?.addEventListener("input", () => {
+        layout.point.cardW = clamp(Number(pointCardWEl.value), 180, 700);
+        saveLayout(userId, layout);
+        applyAll();
+      });
+      pointCardHEl?.addEventListener("input", () => {
+        layout.point.cardH = clamp(Number(pointCardHEl.value), 40, 260);
+        saveLayout(userId, layout);
+        applyAll();
+      });
       pointTwoLineEl?.addEventListener("change", () => {
         layout.point.twoLine = !!pointTwoLineEl.checked;
         saveLayout(userId, layout);
@@ -1440,6 +1484,8 @@
         if (timerScaleEl) timerScaleEl.value = String(layout.timer.scale);
         if (pointScaleEl) pointScaleEl.value = String(layout.point.scale);
         if (pointFontSizeEl) pointFontSizeEl.value = String(layout.point.fontSize ?? DEFAULT_LAYOUT.point.fontSize);
+        if (pointCardWEl) pointCardWEl.value = String(layout.point.cardW ?? DEFAULT_LAYOUT.point.cardW);
+        if (pointCardHEl) pointCardHEl.value = String(layout.point.cardH ?? DEFAULT_LAYOUT.point.cardH);
         if (pointTwoLineEl) pointTwoLineEl.checked = !!layout.point.twoLine;
         renderPaletteSelected();
         disableConflictingSideOptions();
