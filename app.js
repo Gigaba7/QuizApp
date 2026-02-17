@@ -636,6 +636,247 @@
     const controls = [qs("#timerStartBtn"), qs("#timerStopBtn"), qs("#timerResetBtn"), qs("#durationSec")].filter(Boolean);
     for (const el of controls) el.disabled = !isHost;
 
+    // Host display settings modal (local layout + profile; profile is synced to Firebase players/{uid})
+    const openSettingsBtn = qs("#roomOpenSettingsBtn");
+    openSettingsBtn?.toggleAttribute("disabled", !isHost);
+    const modal = qs("#roomAdjustModal");
+    const closeBtn = qs("#roomAdjustCloseBtn");
+    const openModal = () => {
+      if (!isHost) return;
+      modal?.classList.remove("hidden");
+      modal?.setAttribute("aria-hidden", "false");
+      setTimeout(() => qs("#rmDsDisplayName")?.focus(), 0);
+    };
+    const closeModal = () => {
+      modal?.classList.add("hidden");
+      modal?.setAttribute("aria-hidden", "true");
+    };
+    openSettingsBtn?.addEventListener("click", openModal);
+    closeBtn?.addEventListener("click", closeModal);
+    modal?.addEventListener("click", (e) => {
+      const t = e.target;
+      if (t?.dataset?.close) closeModal();
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && !(modal?.classList.contains("hidden"))) closeModal();
+    });
+
+    // Ensure host has a player entry (so host point can be shown/hidden and profile sync works)
+    let hostProfile = loadProfile(userId);
+    const hostPlayerRef = roomRef.child(`players/${userId}`);
+    hostPlayerRef.once("value").then((snap) => {
+      if (!snap.exists()) {
+        hostPlayerRef.set({
+          authUid: authed.uid,
+          name: hostProfile.name,
+          score: 0,
+          color: hostProfile.color,
+          iconImage: hostProfile.iconImage || "",
+          joinedAt: serverTimestamp(),
+          order: serverTimestamp(),
+        });
+        return;
+      }
+      hostPlayerRef.update({
+        authUid: authed.uid,
+        name: hostProfile.name,
+        color: hostProfile.color,
+        iconImage: hostProfile.iconImage || "",
+      });
+    });
+
+    const syncHostProfile = () => {
+      hostProfile = loadProfile(userId);
+      hostPlayerRef.update({
+        authUid: authed.uid,
+        name: hostProfile.name,
+        color: hostProfile.color,
+        iconImage: hostProfile.iconImage || "",
+      });
+      roomRef.child("lastActiveAt").set(serverTimestamp());
+    };
+
+    const initHostSettingsControls = () => {
+      const nameEl = qs("#rmDsDisplayName");
+      const pasteNameBtn = qs("#rmDsPasteNameBtn");
+      const paletteEl = qs("#rmDsColorPalette");
+      const imgEl = qs("#rmDsImage");
+      const clearImgBtn = qs("#rmDsClearImageBtn");
+      const sideError = qs("#rmDsSideError");
+      const resetBtn = qs("#rmDsResetBtn");
+      const timerScaleEl = qs("#rmDsTimerScale");
+      const pointScaleEl = qs("#rmDsPointScale");
+
+      let layout = loadLayout(userId);
+      let profile = loadProfile(userId);
+
+      const setRadio = (name, value) => {
+        const el = qs(`input[name="${name}"][value="${value}"]`);
+        if (el) el.checked = true;
+      };
+
+      const renderPaletteSelected = () => {
+        if (!paletteEl) return;
+        const cur = (profile.color || DEFAULT_PROFILE.color).toLowerCase();
+        paletteEl.querySelectorAll(".colorSwatch").forEach((btn) => {
+          const c = String(btn.getAttribute("data-color") || "").toLowerCase();
+          btn.classList.toggle("is-selected", !!c && c === cur);
+          if (c) btn.style.background = c;
+        });
+      };
+
+      const enforceSideConstraint = (changed) => {
+        const conflict = layout.timer.side === layout.point.side;
+        sideError?.classList.toggle("hidden", !conflict);
+        if (!conflict) return true;
+        const all = ["top", "bottom", "left", "right"];
+        if (changed === "timer") {
+          const alt = all.find((s) => s !== layout.point.side) || "top";
+          layout.timer.side = alt;
+          setRadio("rmDsTimerSide", layout.timer.side);
+        } else if (changed === "point") {
+          const alt = all.find((s) => s !== layout.timer.side) || "right";
+          layout.point.side = alt;
+          setRadio("rmDsPointSide", layout.point.side);
+        }
+        sideError?.classList.remove("hidden");
+        return false;
+      };
+
+      const disableConflictingSideOptions = () => {
+        const t = layout.timer.side;
+        const p = layout.point.side;
+        qsa('input[name="rmDsTimerSide"]').forEach((el) => {
+          el.disabled = el.value === p && !el.checked;
+        });
+        qsa('input[name="rmDsPointSide"]').forEach((el) => {
+          el.disabled = el.value === t && !el.checked;
+        });
+      };
+
+      const persist = () => {
+        saveLayout(userId, layout);
+        saveProfile(userId, profile);
+        syncHostProfile();
+      };
+
+      // init values
+      if (nameEl) nameEl.value = profile.name || DEFAULT_PROFILE.name;
+      if (timerScaleEl) timerScaleEl.value = String(layout.timer.scale);
+      if (pointScaleEl) pointScaleEl.value = String(layout.point.scale);
+      setRadio("rmDsTimerVisible", layout.timer.visible ? "on" : "off");
+      setRadio("rmDsPointVisible", layout.point.visible ? "on" : "off");
+      setRadio("rmDsTimerSide", layout.timer.side);
+      setRadio("rmDsPointSide", layout.point.side);
+      renderPaletteSelected();
+      disableConflictingSideOptions();
+
+      nameEl?.addEventListener("input", () => {
+        profile.name = (nameEl.value || "").toString().slice(0, 24) || DEFAULT_PROFILE.name;
+        persist();
+      });
+      pasteNameBtn?.addEventListener("click", async () => {
+        try {
+          const t = (await readClipboardText()).trim();
+          if (!t) return;
+          if (nameEl) nameEl.value = t.slice(0, 24);
+          dispatchInput(nameEl);
+        } catch {
+          alert("クリップボードの読み取りに失敗しました。ブラウザ設定/HTTPS/localhost を確認し、手動で貼り付けてください。");
+        }
+      });
+
+      paletteEl?.addEventListener("click", (e) => {
+        const t = e.target;
+        if (!t?.classList?.contains("colorSwatch")) return;
+        const c = String(t.getAttribute("data-color") || "");
+        if (!c) return;
+        profile.color = c;
+        renderPaletteSelected();
+        persist();
+      });
+
+      imgEl?.addEventListener("change", () => {
+        const f = imgEl.files?.[0];
+        if (!f) return;
+        if (!f.type.startsWith("image/")) {
+          alert("画像ファイルを選択してください。");
+          imgEl.value = "";
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = () => {
+          profile.iconImage = String(reader.result || "");
+          persist();
+        };
+        reader.readAsDataURL(f);
+      });
+      clearImgBtn?.addEventListener("click", () => {
+        profile.iconImage = "";
+        if (imgEl) imgEl.value = "";
+        persist();
+      });
+
+      qsa('input[name="rmDsTimerVisible"]').forEach((el) =>
+        el.addEventListener("change", () => {
+          layout.timer.visible = el.value === "on";
+          saveLayout(userId, layout);
+        }),
+      );
+      qsa('input[name="rmDsPointVisible"]').forEach((el) =>
+        el.addEventListener("change", () => {
+          layout.point.visible = el.value === "on";
+          saveLayout(userId, layout);
+        }),
+      );
+      qsa('input[name="rmDsTimerSide"]').forEach((el) =>
+        el.addEventListener("change", () => {
+          if (!el.checked) return;
+          layout.timer.side = el.value;
+          enforceSideConstraint("timer");
+          disableConflictingSideOptions();
+          saveLayout(userId, layout);
+        }),
+      );
+      qsa('input[name="rmDsPointSide"]').forEach((el) =>
+        el.addEventListener("change", () => {
+          if (!el.checked) return;
+          layout.point.side = el.value;
+          enforceSideConstraint("point");
+          disableConflictingSideOptions();
+          saveLayout(userId, layout);
+        }),
+      );
+      timerScaleEl?.addEventListener("input", () => {
+        layout.timer.scale = clamp(Number(timerScaleEl.value), 0.5, 2.0);
+        saveLayout(userId, layout);
+      });
+      pointScaleEl?.addEventListener("input", () => {
+        layout.point.scale = clamp(Number(pointScaleEl.value), 0.5, 2.0);
+        saveLayout(userId, layout);
+      });
+
+      resetBtn?.addEventListener("click", () => {
+        localStorage.removeItem(layoutKey(userId));
+        localStorage.removeItem(profileKey(userId));
+        layout = loadLayout(userId);
+        profile = loadProfile(userId);
+        persist();
+        // reflect UI
+        if (nameEl) nameEl.value = profile.name || DEFAULT_PROFILE.name;
+        setRadio("rmDsTimerVisible", layout.timer.visible ? "on" : "off");
+        setRadio("rmDsPointVisible", layout.point.visible ? "on" : "off");
+        setRadio("rmDsTimerSide", layout.timer.side);
+        setRadio("rmDsPointSide", layout.point.side);
+        if (timerScaleEl) timerScaleEl.value = String(layout.timer.scale);
+        if (pointScaleEl) pointScaleEl.value = String(layout.point.scale);
+        renderPaletteSelected();
+        disableConflictingSideOptions();
+      });
+    };
+
+    initHostSettingsControls();
+
     let timerState = { duration: 0, startedAt: 0, running: false };
     roomRef.child("timer").on("value", (snap) => {
       timerState = snap.val() || { duration: 0, startedAt: 0, running: false };

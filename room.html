@@ -17,7 +17,6 @@
         </div>
         <nav class="nav">
           <a class="link" href="./index.html">ホーム</a>
-          <a class="link" href="./config.html">表示設定</a>
           <a class="link" id="overlayLink" href="./overlay.html?room=test" target="_blank" rel="noreferrer">overlayを開く</a>
         </nav>
       </header>
@@ -25,7 +24,10 @@
       <section class="card">
         <div class="row row--between row--wrap">
           <div>
-            <h1 class="h1">タイマー操作</h1>
+            <div class="row row--wrap">
+              <h1 class="h1" style="margin: 0">タイマー操作</h1>
+              <button id="roomOpenSettingsBtn" class="btn btn--small" type="button">表示設定</button>
+            </div>
             <p id="hostWarning" class="notice notice--warn hidden">
               この端末のユーザーIDはホストではありません。操作は無効化されています。
             </p>
@@ -68,6 +70,95 @@
         ルームURLは <span class="mono">room.html?room=123456</span> / overlayは <span class="mono">overlay.html?room=123456</span>。
       </footer>
     </main>
+
+    <!-- 表示設定モーダル（ホスト用） -->
+    <section id="roomAdjustModal" class="modal hidden" aria-hidden="true">
+      <div class="modal__backdrop" data-close="1"></div>
+      <div class="modal__panel" role="dialog" aria-modal="true" aria-labelledby="roomAdjustTitle">
+        <div class="row row--between row--wrap">
+          <h2 id="roomAdjustTitle" class="h2" style="margin: 0">表示設定（ホスト）</h2>
+          <button id="roomAdjustCloseBtn" class="btn btn--small" type="button">閉じる</button>
+        </div>
+
+        <div class="grid grid--3" style="margin-top: 10px">
+          <div class="field">
+            <label class="label" for="rmDsDisplayName">表示名</label>
+            <div class="inputRow">
+              <input id="rmDsDisplayName" class="input" type="text" maxlength="24" placeholder="例: Host" />
+              <button id="rmDsPasteNameBtn" class="btn btn--small" type="button">ペースト</button>
+            </div>
+          </div>
+          <div class="field">
+            <label class="label">カラー</label>
+            <div id="rmDsColorPalette" class="colorPalette" role="group" aria-label="カラー選択">
+              <button class="colorSwatch" type="button" data-color="#7c5cff" aria-label="紫"></button>
+              <button class="colorSwatch" type="button" data-color="#2fe1a0" aria-label="緑"></button>
+              <button class="colorSwatch" type="button" data-color="#00c2ff" aria-label="水色"></button>
+              <button class="colorSwatch" type="button" data-color="#ffb020" aria-label="オレンジ"></button>
+              <button class="colorSwatch" type="button" data-color="#ff3b66" aria-label="ピンク"></button>
+              <button class="colorSwatch" type="button" data-color="#ffffff" aria-label="白"></button>
+              <button class="colorSwatch" type="button" data-color="#9aa4b2" aria-label="グレー"></button>
+              <button class="colorSwatch" type="button" data-color="#111827" aria-label="黒"></button>
+              <button class="colorSwatch" type="button" data-color="#f97316" aria-label="濃いオレンジ"></button>
+              <button class="colorSwatch" type="button" data-color="#22c55e" aria-label="明るい緑"></button>
+              <button class="colorSwatch" type="button" data-color="#3b82f6" aria-label="青"></button>
+            </div>
+          </div>
+          <div class="field">
+            <label class="label" for="rmDsImage">背景画像（ポイント枠）</label>
+            <input id="rmDsImage" class="input" type="file" accept="image/*" />
+            <div class="row row--wrap">
+              <button id="rmDsClearImageBtn" class="btn btn--small" type="button">画像を削除</button>
+            </div>
+          </div>
+        </div>
+
+        <hr class="hr" />
+
+        <p id="rmDsSideError" class="notice notice--error hidden">タイマーとポイントは同じ位置を選べません。</p>
+        <div class="grid grid--2">
+          <div class="field">
+            <div class="label">タイマー</div>
+            <div class="row row--wrap">
+              <label class="radio"><input type="radio" name="rmDsTimerVisible" value="on" /> 表示</label>
+              <label class="radio"><input type="radio" name="rmDsTimerVisible" value="off" /> 非表示</label>
+            </div>
+            <div class="row row--wrap" style="margin-top: 6px">
+              <label class="radio"><input type="radio" name="rmDsTimerSide" value="top" /> 上</label>
+              <label class="radio"><input type="radio" name="rmDsTimerSide" value="bottom" /> 下</label>
+              <label class="radio"><input type="radio" name="rmDsTimerSide" value="left" /> 左</label>
+              <label class="radio"><input type="radio" name="rmDsTimerSide" value="right" /> 右</label>
+            </div>
+            <div class="field" style="margin-top: 6px">
+              <label class="label" for="rmDsTimerScale">scale</label>
+              <input id="rmDsTimerScale" class="input" type="range" min="0.5" max="2" step="0.1" />
+            </div>
+          </div>
+          <div class="field">
+            <div class="label">ポイント</div>
+            <div class="row row--wrap">
+              <label class="radio"><input type="radio" name="rmDsPointVisible" value="on" /> 表示</label>
+              <label class="radio"><input type="radio" name="rmDsPointVisible" value="off" /> 非表示</label>
+            </div>
+            <div class="row row--wrap" style="margin-top: 6px">
+              <label class="radio"><input type="radio" name="rmDsPointSide" value="top" /> 上</label>
+              <label class="radio"><input type="radio" name="rmDsPointSide" value="bottom" /> 下</label>
+              <label class="radio"><input type="radio" name="rmDsPointSide" value="left" /> 左</label>
+              <label class="radio"><input type="radio" name="rmDsPointSide" value="right" /> 右</label>
+            </div>
+            <div class="field" style="margin-top: 6px">
+              <label class="label" for="rmDsPointScale">scale</label>
+              <input id="rmDsPointScale" class="input" type="range" min="0.5" max="2" step="0.1" />
+            </div>
+          </div>
+        </div>
+
+        <div class="row row--wrap" style="margin-top: 12px">
+          <span class="muted">※操作は自動保存されます</span>
+          <button id="rmDsResetBtn" class="btn btn--danger" type="button">初期化</button>
+        </div>
+      </div>
+    </section>
 
     <!-- Firebase (compat) -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
