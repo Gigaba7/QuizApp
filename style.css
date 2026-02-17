@@ -534,24 +534,21 @@ body {
 
 .pointRow {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   gap: 12px;
-  align-items: baseline;
+  align-items: center;
   font-size: 34px;
   font-weight: 900;
   line-height: 1.1;
   flex-wrap: nowrap;
   white-space: nowrap;
+  text-align: center;
 }
 
 .pointCard.is-twoLine .pointRow {
   flex-direction: column;
-  align-items: stretch;
+  align-items: center;
   gap: 6px;
-}
-
-.pointCard.is-twoLine .pointRow .score {
-  align-self: flex-end;
 }
 
 .pointRow .name {
