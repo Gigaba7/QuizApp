@@ -1157,7 +1157,8 @@
       if (pointEl) {
         pointEl.style.setProperty("--pointCardWBase", `${w}px`);
         pointEl.style.setProperty("--pointCardHBase", `${h}px`);
-        const isSideLR = pointEl.classList.contains("side--left") || pointEl.classList.contains("side--right");
+        // Use layout value (not DOM class) so it always matches the user's setting.
+        const isSideLR = layout?.point?.side === "left" || layout?.point?.side === "right";
         if (isSideLR) {
           pointEl.style.setProperty("--pointCardH", `${Math.max(32, Math.ceil(h / 3))}px`);
         } else {
