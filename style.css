@@ -540,7 +540,7 @@ body {
   justify-content: center;
   gap: 12px;
   align-items: center;
-  font-size: 34px;
+  font-size: 36px;
   font-weight: 900;
   line-height: 1.1;
   flex-wrap: nowrap;
@@ -552,7 +552,7 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 6px;
-  font-size: 40px;
+  font-size: 42px;
 }
 
 .pointCard.is-twoLine {

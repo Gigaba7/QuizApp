@@ -7,7 +7,7 @@
 
   const DEFAULT_LAYOUT = {
     timer: { visible: true, side: "top", scale: 1.0 },
-    point: { visible: true, side: "right", scale: 1.0, fontScale: 1.0, twoLine: false },
+    point: { visible: true, side: "right", scale: 1.0, twoLine: false },
   };
 
   const DEFAULT_PROFILE = {
@@ -52,7 +52,6 @@
     };
     merged.timer.visible = !!merged.timer.visible;
     merged.point.visible = !!merged.point.visible;
-    merged.point.fontScale = clamp(Number(merged.point.fontScale ?? 1.0), 0.7, 1.5);
     merged.point.twoLine = !!merged.point.twoLine;
     return merged;
   }
@@ -492,7 +491,6 @@
       layout.point.scale = clamp(Number(pointScaleEl.value), 0.5, 2.0);
       saveLayout(userId, layout);
     });
-
     pointTwoLineEl?.addEventListener("change", () => {
       layout.point.twoLine = !!pointTwoLineEl.checked;
       saveLayout(userId, layout);
@@ -1109,8 +1107,8 @@
 
       const fitNameOnly = (cardEl, nameEl, scoreEl) => {
         if (!cardEl || !nameEl || !scoreEl) return;
-        const base = 34;
-        const min = 22; // lower than this: rely on "…" ellipsis instead of further shrinking
+        const base = 36;
+        const min = 24; // lower than this: rely on "…" ellipsis instead of further shrinking
         const gap = 12; // must match CSS gap
         nameEl.style.fontSize = `${base}px`;
 
@@ -1163,8 +1161,8 @@
         // after insertion (layout available), shrink only the name when needed.
         if (layout.point.twoLine) {
           // fit name within card width; if too small, rely on ellipsis
-          const base = 40;
-          const min = 22;
+          const base = 42;
+          const min = 26;
           name.style.maxWidth = `${Math.max(100, Math.floor(card.getBoundingClientRect().width - 28))}px`;
           for (let size = base; size >= min; size -= 1) {
             name.style.fontSize = `${size}px`;
